@@ -1,0 +1,10 @@
+ÿcategorie,app,n_reviews,note_moyenne,sentiment_moyen,pct_negatif,pct_positif,theme_dominant,frustration_principale
+maladie_chronique,Ada Health,3448,4.55,0.52,14.15,77.2,utilite_percue,utilite_percue
+maladie_chronique,Migraine Buddy,2729,4.65,0.56,11.87,82.12,utilite_percue,utilite_percue
+maladie_chronique,MySugr,4293,4.07,0.3,26.69,64.01,utilite_percue,fonctionnalite_manquante
+maladie_chronique,MyTherapy,4260,4.34,0.4,21.1,71.53,utilite_percue,utilite_percue
+sante_mentale,Pi,2135,3.61,0.04,43.75,48.9,utilite_percue,fonctionnalite_manquante
+sante_mentale,Replika,4939,2.93,-0.16,55.68,36.81,utilite_percue,fonctionnalite_manquante
+sante_mentale,Woebot,2013,4.22,0.43,20.67,74.22,utilite_percue,fonctionnalite_manquante
+sante_mentale,Wysa,4127,4.52,0.55,14.17,82.02,utilite_percue,utilite_percue
+sante_mentale,Youper,1610,3.01,-0.02,48.14,46.21,utilite_percue,prix_paywall

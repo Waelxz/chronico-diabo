@@ -1,0 +1,41 @@
+import { z } from 'zod';
+
+/**
+ * Server-side environment schema. All values are optional during sprint 0
+ * because Atlas/auth aren't wired yet. Tighten as features land.
+ */
+const ServerEnvSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+
+  // LLM
+  OPENROUTER_API_KEY: z.string().min(1).optional(),
+  OPENROUTER_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
+  OPENROUTER_MODEL: z.string().default('meta-llama/llama-3.3-70b-instruct:free'),
+
+  // HuggingFace (sentiment + embeddings)
+  HUGGINGFACE_ACCESS_TOKEN: z.string().min(1).optional(),
+
+  // MongoDB Atlas (added once cluster is created)
+  MONGODB_URI: z.string().min(1).optional(),
+  MONGODB_DB: z.string().default('chronico_diabo'),
+
+  // App
+  APP_URL: z.string().url().default('http://localhost:3000'),
+});
+
+export type ServerEnv = z.infer<typeof ServerEnvSchema>;
+
+let cached: ServerEnv | null = null;
+
+export function getEnv(): ServerEnv {
+  if (cached) return cached;
+  const parsed = ServerEnvSchema.safeParse(process.env);
+  if (!parsed.success) {
+    // Don't crash dev — log and return defaults.
+    console.warn('[env] invalid env, using defaults:', parsed.error.flatten());
+    cached = ServerEnvSchema.parse({});
+  } else {
+    cached = parsed.data;
+  }
+  return cached;
+}
