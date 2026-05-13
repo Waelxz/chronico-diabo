@@ -1,0 +1,82 @@
+Diabo · progress log
+====================
+(Append-only. Newest entry on top.)
+
+----- 2026-05-13 22:10 UTC+01 — autonomous sprint 1, while user was AFK -----
+
+DONE this run
+-------------
+1. Installed Vercel AI SDK v6 + @ai-sdk/react v3 + @openrouter/ai-sdk-provider v2.
+2. Created the LLM provider helper:           src/lib/llm.ts
+3. Created the Diabo system prompt (FR):      src/lib/diabo/persona.ts
+4. Created the Mongo persistence helpers:     src/lib/db/chats.ts
+5. Created the streaming chat route:          src/app/api/chat/route.ts
+   - Node runtime (mongodb driver doesn't run on Edge).
+   - httpOnly cookie `diabo_chat_id`, minted on first POST, 30-day Max-Age.
+   - Calls touchChat() + appendMessage(user) fire-and-forget BEFORE the stream.
+   - onFinish hook persists the assistant turn.
+   - Never blocks the stream on Mongo (try/catch on every write).
+6. Created the React context for the avatar:  src/components/diabo/DiaboProvider.tsx
+   - useDiabo() exposes setIsThinking / setIsTalking / setPreset / patch.
+   - Only sanctioned channel between React and Diabo per AGENTS.md.
+7. Refactored DiaboStage to bind ViewModel:   src/components/diabo/DiaboStage.tsx
+   - useViewModelInstanceBoolean('isTalking' / 'isThinking', rive.viewModelInstance)
+   - Pushes context state into Rive on every effect tick.
+8. Built the ChatPanel UI:                    src/components/chat/ChatPanel.tsx
+   - useChat({ transport: DefaultChatTransport }), FR copy.
+   - Drives Diabo lifecycle from status: submitted → thinking, streaming → talking.
+   - Stop button while streaming, Regenerate button after.
+   - Empty-state, typing-dots, error bubble.
+9. Rebuilt the landing page:                  src/app/page.tsx
+   - Wraps everything in <DiaboProvider>, side-by-side avatar + chat on lg+.
+10. Created Mongo collections + indexes via the MongoDB MCP:
+    db: chronico_diabo
+    chats:    { _id, createdAt, updatedAt, lastUserMessage?, lastAssistantMessage? }
+              index: updatedAt_desc
+    messages: { _id, chatId, role, content, createdAt }
+              index: chatId_createdAt
+11. Smoke-tested via scripts/smoke-chat.mjs   (commit-included tool):
+    User: "Bonjour Diabo, je suis fatiguée aujourd'hui…"
+    Diabo: empathetic FR reply with food/walk advice + medical disclaimer.
+    237 SSE chunks, ~26s on openai/gpt-oss-120b:free.
+12. Visually verified via Playwright at http://localhost:3000:
+    - Avatar canvas 448×448 painted.
+    - Chat input → Diabo replies → conversation persisted to Mongo.
+    - 0 console errors, 0 warnings.
+13. Pushed:
+    commit 026e19e — "sprint 1: streaming chat with Diabo persona + Mongo persistence"
+    14 files changed, 906 insertions(+), 40 deletions(-)
+14. Updated README.md sprint table (0 done, 1 done, 2 next).
+
+Model rotation note
+-------------------
+- Started on meta-llama/llama-3.3-70b-instruct:free → upstream rate-limit (Venice provider).
+- Tried google/gemini-2.0-flash-exp:free → "no endpoints found" (gone from OpenRouter).
+- Settled on openai/gpt-oss-120b:free → works, sounds great in French, OpenAI-lineage.
+- Free model menu in .env.example: gpt-oss-120b > qwen3-next-80b > llama-3.3-70b > hermes-3-405b > glm-4.5-air.
+
+Open follow-ups (for next sessions)
+-----------------------------------
+- [ ] Production build verification (build was kicked off in background, see build.log).
+- [ ] Sprint 2: emotion detection.
+      Plan: /api/emotion route → HF Inference API (cardiffnlp/twitter-xlm-roberta-base-sentiment).
+      On chat finish, post the user's text to /api/emotion, map result to DIABO_PRESETS via a lookup.
+      Update DiaboProvider with `applyEmotion(result)`.
+- [ ] Multi-model fallback in /api/chat: catch 429 from streamText (currently logs but client sees error event); retry with next model in OPENROUTER_MODELS list before giving up.
+- [ ] Persist client cookie chat history into the UI on reload (currently messages list is in-memory).
+- [ ] Add /api/chats/[id]/messages GET to hydrate ChatPanel from Mongo.
+- [ ] Vercel preview deploy (still pending — needs human in the Vercel dashboard for env vars).
+- [ ] Replace the temporary `dev-server.log` mechanism with a proper background dev runner.
+
+Dev server (during my run)
+--------------------------
+- Launched via `Start-Process powershell -ArgumentList "-c","npm run dev *>&1 | Tee-Object dev-server.log" -WindowStyle Hidden`.
+- It may still be running on port 3000 (PID was 8996 when I last checked).
+- If you don't want it, kill it with:
+    Get-NetTCPConnection -LocalPort 3000 -State Listen | % { Stop-Process -Id $_.OwningProcess -Force }
+
+Mongo Atlas state at end of run
+-------------------------------
+chronico_diabo.chats:    3 docs (one per smoke-test session)
+chronico_diabo.messages: 4 docs (3 user, 1 assistant)
+indexes:                 chatId_createdAt, updatedAt_desc

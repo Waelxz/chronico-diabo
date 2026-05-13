@@ -30,6 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dev-server.log
+build.log
 
 # screenshots from local browser smoke-tests
 sprint*-*.png
