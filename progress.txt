@@ -2,6 +2,76 @@ Diabo · progress log
 ====================
 (Append-only. Newest entry on top.)
 
+----- 2026-05-14 00:21 UTC+01 — autonomous AFK hour, sprints 1+, 2, 3 -----
+
+WHAT LANDED IN PROD
+-------------------
+- Sprint 1+ — resilience pass
+   commit cd9c846 — `sprint 1+: serverless onFinish fix + OpenRouter fallback + chat history hydration`
+   - `onFinish` in `/api/chat` made async + awaits the Mongo assistant write so Vercel doesn't kill the fn before the chat-doc updateOne lands.
+   - OPENROUTER_FALLBACK_MODELS env var → OpenRouter's native `models[]` field.
+   - GET /api/chats/current/messages — cookie-scoped history endpoint.
+   - ChatPanel hydrates from server on mount with a cancellable fetch + 'Récupération…' state.
+
+- Sprint 2 — empathy module
+   commit 11011b5 — `sprint 2: empathy module - sentiment via HF drives Diabo's face`
+   - Migrated to `@huggingface/inference` SDK (legacy api-inference.huggingface.co was deprecated).
+   - /api/emotion → cardiffnlp/twitter-xlm-roberta-base-sentiment via 'hf-inference' provider.
+   - emotion-map.ts: positive→happy, neutral→neutral, negative→worried (empathetic mirroring; sad user → concerned Diabo, not sad Diabo).
+   - DiaboProvider.applyEmotion + DiaboStage now drives 4 numeric Rive props (mouthState, eyebrowMood, eyelidState, happiness) on top of the existing booleans.
+   - ChatPanel fires /api/emotion in parallel with sendMessage on every submit.
+
+- Sprint 3 — RAG over diabetes KB
+   commit 31c1699 — `sprint 3: RAG over diabetes knowledge base (Atlas Vector Search)`
+   - HF featureExtraction with sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (384 dim).
+   - kb_chunks collection in Atlas with vector index `kb_chunks_vector` (cosine, 384 dim, topic filter).
+   - 14 curated FR seed chunks (src/lib/diabo/knowledge.ts) covering concept, food, activity, monitoring, hypo, hyper, mental, travel, ramadan, pregnancy. Maghreb-aware, no specific medical numbers, no copy-paste from copyrighted sources.
+   - POST /api/admin/seed-kb — idempotent ingestion route, disabled in prod by default (NODE_ENV check).
+   - /api/chat retrieves top-3 chunks via cosine vector search, prepends as 'Contexte issu de la base de connaissances Diabo' to the persona system prompt. Best-effort: KB outage → persona-only.
+
+PROD VERIFICATIONS (Vercel: chronico-diabo.vercel.app)
+------------------------------------------------------
+- `dpl_SujLeHhWMoUarv7A6Q2MtQujR5Qa` deploy READY in 27s.
+- /api/chat with hypo question → empathetic FR answer with all 7 hypo signs (matches seed chunk), the 15-min sugar rule, and emergency numbers 190/14/141 (matches persona). 27s end-to-end on gpt-oss-120b:free.
+- /api/emotion with "Je suis triste aujourd'hui" → negative (0.946). Warm <500ms.
+- Mongo chat doc `6a0508520bfd6feee11bee2d`: `lastUserMessage` + `lastAssistantMessage` both populated, updatedAt 25s after createdAt → onFinish fix works on serverless.
+
+PROVIDER ROTATION SAGA
+----------------------
+Hit Venice rate-limits on `qwen3-next-80b`, `hermes-3-405b`, `llama-3.3-70b` mid-session (free key shared quota).
+Settled on:
+   primary  : openai/gpt-oss-120b:free          (OpenInference provider — different from Venice)
+   fallback : google/gemma-4-26b-a4b-it:free   (Google AI Studio)
+              qwen/qwen3-next-80b-a3b-instruct:free
+              meta-llama/llama-3.3-70b-instruct:free
+Cross-provider rotation matters more than cross-model on free tier.
+
+KNOWN ISSUES (non-blocking)
+---------------------------
+- Local dev sometimes returns 500 on /api/chat when the augmented system prompt is large AND the fallback chain happens to land on a Venice-rate-limited provider. Prod is currently happier than local because Vercel's IP gets a fresh provider lottery. If it bites again locally, swap the .env primary to gemma or wait ~30s.
+- `progress.txt` line count is growing — fine for now, archive in a sprint when convenient.
+
+VERCEL ENV VARS — STILL UNSET (optional)
+----------------------------------------
+- `OPENROUTER_FALLBACK_MODELS` — Vercel uses the zod default (empty string = no fallback). To enable native fallback in prod too, paste:
+   OPENROUTER_FALLBACK_MODELS=google/gemma-4-26b-a4b-it:free,qwen/qwen3-next-80b-a3b-instruct:free,meta-llama/llama-3.3-70b-instruct:free
+- `APP_URL` — set to `https://chronico-diabo.vercel.app` once you're ready (OpenRouter analytics referer only).
+
+SUGGESTED NEXT MOVES
+--------------------
+- Sprint 4: restaurants module (Overpass + LLM scoring + Leaflet map of diabetes-friendly places near user).
+- Optional polish: surface KB citations in the chat UI ("Diabo a consulté: Signes d'hypoglycémie / Aliments à modérer"). Currently the persona is told NOT to cite — flip that for transparency.
+- Optional polish: re-write the smoke-chat script to retry on 500 (since OpenRouter free-tier flakiness is structural).
+
+ATLAS STATE AT END OF SESSION
+-----------------------------
+chronico_diabo.chats        : multiple cookie sessions; lastAssistantMessage populated since sprint 1+ fix
+chronico_diabo.messages     : ~12-15 docs (assorted smoke tests)
+chronico_diabo.kb_chunks    : 14 docs, all with 384-dim embeddings
+                              vector index `kb_chunks_vector` (READY, queryable)
+
+
+
 ----- 2026-05-13 22:10 UTC+01 — autonomous sprint 1, while user was AFK -----
 
 DONE this run

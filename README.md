@@ -35,19 +35,29 @@ What 33 604 reviews of competing apps revealed (full analysis in `notebooks/`): 
 ```
 src/
   app/
-    api/chat/       POST → streaming LLM response (AI SDK v6, OpenRouter)
-    layout.tsx      Root layout, French metadata, Geist fonts
-    page.tsx        Landing page: DiaboProvider + DiaboStage + ChatPanel
+    api/
+      chat/                       POST → RAG-augmented streaming LLM reply
+      chats/current/messages/     GET  → message history of the cookie session
+      emotion/                    POST → HF sentiment classification (FR/AR)
+      admin/seed-kb/              POST → idempotent KB seeding (dev-only)
+    layout.tsx                    Root layout, French metadata, Geist fonts
+    page.tsx                      Landing: DiaboProvider + DiaboStage + ChatPanel
   components/
-    chat/           ChatPanel client component (useChat + lifecycle wiring)
-    diabo/          DiaboProvider context + DiaboStage Rive avatar
+    chat/           ChatPanel client component (useChat + history + emotion wiring)
+    diabo/          DiaboProvider context + DiaboStage (boolean + number Rive channels)
   lib/
-    db/chats.ts     Mongo helpers for `chats` + `messages` collections
+    db/
+      chats.ts      Mongo helpers for `chats` + `messages` collections
+      kb.ts         Mongo + Atlas Vector Search helpers for `kb_chunks`
     diabo/
-      persona.ts    DIABO_PERSONA_FR system prompt
-      types.ts      DiaboCon ViewModel typed interface
-    env.ts          Zod-validated server env (OpenRouter, HF, Mongo)
-    llm.ts          OpenRouter provider + default chat model
+      persona.ts        DIABO_PERSONA_FR system prompt
+      emotion-map.ts    sentiment label → empathetic DiaboPreset
+      knowledge.ts      14 curated FR KB seed chunks (Maghreb-aware)
+      types.ts          DiaboCon ViewModel typed interface
+    embeddings.ts   HF featureExtraction (384-dim multilingual MiniLM)
+    emotion.ts      HF textClassification (xlm-roberta sentiment)
+    env.ts          Zod-validated server env (OpenRouter, HF, Mongo, model rotation)
+    llm.ts          OpenRouter provider + native fallback chain via `models[]`
     mongodb.ts      Lazy MongoClient with HMR-safe cache
 scripts/
   smoke-chat.mjs    Standalone test: POST a French prompt to /api/chat
@@ -81,11 +91,12 @@ Requirements: **Node 20.9+** (Next.js 16 requirement; we test on Node 24).
 ## Sprints (status)
 
 | # | Sprint | Status |
-|---|---|---|dn
-| 0 | Setup + Diabo idle on landing page | 🟢 in progress | + Mongo persistence 🟢done
-| 1 | Streaming chat + avatar lifecycle (`isT nextalking`/`isThinking`) | ⚪ |
-| 2 | Empathy module (emotion → DiaboCon) | ⚪ |
-| 3 | RAG over diabetes knowledge base | ⚪ |
+|---|---|---|
+| 0 | Setup + Diabo idle on landing page | 🟢 done |
+| 1 | Streaming chat + avatar lifecycle (`isTalking`/`isThinking`) + Mongo persistence | 🟢 done |
+| 1+ | onFinish serverless fix + OpenRouter fallback + chat history hydration | 🟢 done |
+| 2 | Empathy module (HF sentiment → DiaboCon empathetic preset) | 🟢 done |
+| 3 | RAG over diabetes KB (Atlas Vector Search, 14 FR seed chunks) | 🟢 done |
 | 4 | Restaurants module (Overpass + LLM scoring + Leaflet) | ⚪ |
 | 5 | Hotels + travel module | ⚪ |
 | 6 | Auth + reminders + Web Push | ⚪ |
