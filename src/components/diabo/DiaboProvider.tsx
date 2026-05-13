@@ -8,6 +8,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { EmotionLabel } from '@/lib/emotion';
+import { emotionToPreset } from '@/lib/diabo/emotion-map';
 import type { DiaboPreset, DiaboState } from '@/lib/diabo/types';
 import { DIABO_PRESETS } from '@/lib/diabo/types';
 
@@ -36,6 +38,8 @@ type DiaboContextValue = {
   setPreset: (p: DiaboPreset) => void;
   /** Patch any subset of avatar props. Useful for emotion-aware updates. */
   patch: (p: Partial<DiaboLifecycleState>) => void;
+  /** Translate a sentiment label into a preset and apply it. */
+  applyEmotion: (label: EmotionLabel) => void;
   reset: () => void;
 };
 
@@ -66,11 +70,32 @@ export function DiaboProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, ...DIABO_PRESETS[p] }));
   }, []);
 
+  const applyEmotion = useCallback((label: EmotionLabel) => {
+    const preset = emotionToPreset(label);
+    setState((prev) => ({ ...prev, ...DIABO_PRESETS[preset] }));
+  }, []);
+
   const reset = useCallback(() => setState(DEFAULT_STATE), []);
 
   const value = useMemo<DiaboContextValue>(
-    () => ({ state, setIsThinking, setIsTalking, setPreset, patch, reset }),
-    [state, setIsThinking, setIsTalking, setPreset, patch, reset],
+    () => ({
+      state,
+      setIsThinking,
+      setIsTalking,
+      setPreset,
+      patch,
+      applyEmotion,
+      reset,
+    }),
+    [
+      state,
+      setIsThinking,
+      setIsTalking,
+      setPreset,
+      patch,
+      applyEmotion,
+      reset,
+    ],
   );
 
   return <DiaboCtx.Provider value={value}>{children}</DiaboCtx.Provider>;

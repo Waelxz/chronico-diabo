@@ -29,7 +29,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
 
   const [input, setInput] = useState('');
   const [hydrating, setHydrating] = useState(true);
-  const { setIsThinking, setIsTalking } = useDiabo();
+  const { setIsThinking, setIsTalking, applyEmotion } = useDiabo();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Hydrate from server on mount so a page refresh keeps the conversation.
@@ -91,9 +91,28 @@ export function ChatPanel({ className }: ChatPanelProps) {
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = input.trim();
-    if (!trimmed || isBusy) return;
+    if (!trimmed || isBusy || hydrating) return;
     sendMessage({ text: trimmed });
     setInput('');
+    // Parallel emotion analysis: drives Diabo's face independently of the
+    // chat stream. Non-blocking, errors swallowed — Diabo stays put on
+    // failure rather than dragging the user down with a broken UI.
+    fetch('/api/emotion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: trimmed }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { label?: string } | null) => {
+        if (
+          data?.label === 'positive' ||
+          data?.label === 'negative' ||
+          data?.label === 'neutral'
+        ) {
+          applyEmotion(data.label);
+        }
+      })
+      .catch((err) => console.warn('[ChatPanel] emotion failed:', err));
   }
 
   return (

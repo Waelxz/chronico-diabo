@@ -7,6 +7,7 @@ import {
   Layout,
   useRive,
   useViewModelInstanceBoolean,
+  useViewModelInstanceNumber,
 } from '@rive-app/react-canvas';
 import {
   DIABO_ARTBOARD,
@@ -23,8 +24,15 @@ export type DiaboStageProps = {
  * Renders the Diabo Rive avatar with its `Diabo` state machine running.
  *
  * The `Diabo` artboard auto-binds the `DiaboCon` ViewModel, then we push
- * the React-side lifecycle (`isTalking`, `isThinking`) into Rive whenever
+ * the React-side lifecycle and emotion-driven state into Rive whenever
  * `<DiaboProvider>` updates. The avatar must live under a `DiaboProvider`.
+ *
+ * Channels mirrored to Rive:
+ *   - `isTalking`, `isThinking`   → boolean   (chat lifecycle)
+ *   - `mouthState`                → number    (0..8, resting mouth pose)
+ *   - `eyebrowMood`               → number    (0..4, sentiment-driven)
+ *   - `eyelidState`               → number    (0..1, fatigue cue)
+ *   - `happiness`                 → number    (0..1, tail wag threshold ≥ 0.3)
  */
 export function DiaboStage({ className }: DiaboStageProps) {
   const { rive, RiveComponent } = useRive({
@@ -37,14 +45,40 @@ export function DiaboStage({ className }: DiaboStageProps) {
   });
 
   const vm = rive?.viewModelInstance ?? null;
-  const { isThinking, isTalking } = useDiaboState();
+  const {
+    isThinking,
+    isTalking,
+    mouthState,
+    eyebrowMood,
+    eyelidState,
+    happiness,
+  } = useDiaboState();
 
+  // Boolean channels.
   const { setValue: setRiveTalking } = useViewModelInstanceBoolean(
     'isTalking',
     vm,
   );
   const { setValue: setRiveThinking } = useViewModelInstanceBoolean(
     'isThinking',
+    vm,
+  );
+
+  // Number channels.
+  const { setValue: setRiveMouth } = useViewModelInstanceNumber(
+    'mouthState',
+    vm,
+  );
+  const { setValue: setRiveEyebrow } = useViewModelInstanceNumber(
+    'eyebrowMood',
+    vm,
+  );
+  const { setValue: setRiveEyelid } = useViewModelInstanceNumber(
+    'eyelidState',
+    vm,
+  );
+  const { setValue: setRiveHappiness } = useViewModelInstanceNumber(
+    'happiness',
     vm,
   );
 
@@ -55,6 +89,22 @@ export function DiaboStage({ className }: DiaboStageProps) {
   useEffect(() => {
     setRiveThinking(Boolean(isThinking));
   }, [isThinking, setRiveThinking]);
+
+  useEffect(() => {
+    if (mouthState !== undefined) setRiveMouth(mouthState);
+  }, [mouthState, setRiveMouth]);
+
+  useEffect(() => {
+    if (eyebrowMood !== undefined) setRiveEyebrow(eyebrowMood);
+  }, [eyebrowMood, setRiveEyebrow]);
+
+  useEffect(() => {
+    if (eyelidState !== undefined) setRiveEyelid(eyelidState);
+  }, [eyelidState, setRiveEyelid]);
+
+  useEffect(() => {
+    if (happiness !== undefined) setRiveHappiness(happiness);
+  }, [happiness, setRiveHappiness]);
 
   return (
     <RiveComponent
