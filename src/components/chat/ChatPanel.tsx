@@ -24,13 +24,46 @@ export function ChatPanel({ className }: ChatPanelProps) {
     [],
   );
 
-  const { messages, sendMessage, status, error, stop, regenerate } = useChat({
-    transport,
-  });
+  const { messages, sendMessage, setMessages, status, error, stop, regenerate } =
+    useChat({ transport });
 
   const [input, setInput] = useState('');
+  const [hydrating, setHydrating] = useState(true);
   const { setIsThinking, setIsTalking } = useDiabo();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Hydrate from server on mount so a page refresh keeps the conversation.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/chats/current/messages', {
+          credentials: 'same-origin',
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          chatId: string | null;
+          messages: Array<{
+            id: string;
+            role: 'user' | 'assistant';
+            parts: Array<{ type: 'text'; text: string }>;
+          }>;
+        };
+        if (cancelled) return;
+        if (data.messages.length > 0) {
+          // AI SDK accepts the same UIMessage shape we return on the server.
+          setMessages(data.messages as Parameters<typeof setMessages>[0]);
+        }
+      } catch (err) {
+        console.warn('[ChatPanel] hydrate failed:', err);
+      } finally {
+        if (!cancelled) setHydrating(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setMessages]);
 
   // Drive Diabo lifecycle from chat status.
   useEffect(() => {
@@ -92,7 +125,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
         className="flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm"
       >
         {messages.length === 0 ? (
-          <EmptyState />
+          hydrating ? <HydratingState /> : <EmptyState />
         ) : (
           messages.map((m) => (
             <Bubble key={m.id} role={m.role}>
@@ -124,8 +157,8 @@ export function ChatPanel({ className }: ChatPanelProps) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Parle à Diabo… (Comment te sens-tu aujourd'hui ?)"
-          disabled={status === 'error'}
+          placeholder={hydrating ? 'Chargement de la conversation…' : "Parle à Diabo… (Comment te sens-tu aujourd'hui ?)"}
+          disabled={status === 'error' || hydrating}
           className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
           autoComplete="off"
         />
@@ -140,7 +173,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
         ) : (
           <button
             type="submit"
-            disabled={input.trim().length === 0}
+            disabled={input.trim().length === 0 || hydrating}
             className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Envoyer
@@ -160,6 +193,19 @@ function EmptyState() {
       <p className="max-w-xs text-xs">
         Pose-moi une question, partage ce que tu ressens, ou demande-moi un conseil pour vivre avec le diabète.
       </p>
+    </div>
+  );
+}
+
+function HydratingState() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-10 text-center text-zinc-400 dark:text-zinc-500">
+      <span className="inline-flex items-center gap-1.5" aria-label="Chargement">
+        <span className="size-1.5 animate-bounce rounded-full bg-emerald-400 [animation-delay:-0.3s]" />
+        <span className="size-1.5 animate-bounce rounded-full bg-emerald-400 [animation-delay:-0.15s]" />
+        <span className="size-1.5 animate-bounce rounded-full bg-emerald-400" />
+      </span>
+      <p className="text-xs">Récupération de votre conversation…</p>
     </div>
   );
 }

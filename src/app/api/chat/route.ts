@@ -78,12 +78,19 @@ export async function POST(req: Request) {
     system: DIABO_PERSONA_FR,
     messages: modelMessages,
     temperature: 0.75,
-    onFinish: ({ text }) => {
+    onFinish: async ({ text }) => {
       const trimmed = text?.trim();
       if (!trimmed) return;
-      void appendMessage(chatId, 'assistant', trimmed).catch((err) =>
-        console.error('[chat] appendMessage(assistant) failed:', err),
-      );
+      // MUST be awaited: AI SDK awaits onFinish before completing the stream,
+      // which keeps the Vercel function alive long enough for the second
+      // updateOne inside appendMessage (the cached `lastAssistantMessage`
+      // field on the chat doc). Fire-and-forget here gets the function
+      // killed mid-write on serverless.
+      try {
+        await appendMessage(chatId, 'assistant', trimmed);
+      } catch (err) {
+        console.error('[chat] appendMessage(assistant) failed:', err);
+      }
     },
     onError: ({ error }) => {
       console.error('[chat] streamText error:', error);

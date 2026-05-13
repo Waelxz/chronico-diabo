@@ -5,6 +5,8 @@ const prompt =
   process.argv[2] ??
   'Bonjour Diabo, en une phrase, qui es-tu et comment peux-tu m\'aider ?';
 
+const baseUrl = process.env.SMOKE_BASE_URL ?? 'http://localhost:3000';
+
 const body = JSON.stringify({
   messages: [
     {
@@ -15,10 +17,10 @@ const body = JSON.stringify({
   ],
 });
 
-console.log('POST /api/chat ...');
+console.log(`POST ${baseUrl}/api/chat ...`);
 console.log('Prompt:', prompt);
 const start = Date.now();
-const res = await fetch('http://localhost:3000/api/chat', {
+const res = await fetch(`${baseUrl}/api/chat`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body,

@@ -34,8 +34,25 @@ export function getOpenRouter() {
   return cachedProvider;
 }
 
-/** The default chat model configured by `OPENROUTER_MODEL`. */
+function parseFallbacks(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+/**
+ * The default chat model configured by `OPENROUTER_MODEL`, with an OpenRouter
+ * native fallback chain (`models` field) when `OPENROUTER_FALLBACK_MODELS` is
+ * set. OpenRouter retries on the next model in the list if the primary 429s
+ * or returns a routing error — saves us a manual retry loop on free-tier
+ * provider rate-limits.
+ */
 export function getChatModel() {
   const env = getEnv();
-  return getOpenRouter().chat(env.OPENROUTER_MODEL);
+  const fallbacks = parseFallbacks(env.OPENROUTER_FALLBACK_MODELS);
+  return getOpenRouter().chat(
+    env.OPENROUTER_MODEL,
+    fallbacks.length > 0 ? { models: fallbacks } : undefined,
+  );
 }

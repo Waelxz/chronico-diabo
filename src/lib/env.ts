@@ -11,6 +11,9 @@ const ServerEnvSchema = z.object({
   OPENROUTER_API_KEY: z.string().min(1).optional(),
   OPENROUTER_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
   OPENROUTER_MODEL: z.string().default('openai/gpt-oss-120b:free'),
+  // Comma-separated list of models OpenRouter tries when the primary
+  // returns an error (429, capacity, etc.). Empty = no fallback.
+  OPENROUTER_FALLBACK_MODELS: z.string().default(''),
 
   // HuggingFace (sentiment + embeddings)
   HUGGINGFACE_ACCESS_TOKEN: z.string().min(1).optional(),
