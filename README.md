@@ -99,10 +99,11 @@ Requirements: **Node 20.9+** (Next.js 16 requirement; we test on Node 24).
 | 3 | RAG over diabetes KB (Atlas Vector Search, 14 FR seed chunks) | 🟢 done |
 | 4 | Restaurants module (Overpass + LLM scoring + Leaflet) | ⚪ |
 | 5 | Hotels + travel module | ⚪ |
-| 6 | Auth + reminders + Web Push | ⚪ |
-| 7 | Multilingual FR + AR (RTL) | ⚪ |
-| 8 | Onboarding + design polish | ⚪ |
-| 9 | Production deploy + report + demo | ⚪ |
+| 6 | Glucose tracker (manual) — log/chart/weekly LLM summary + PDF export | ⚪ |
+| 7 | Auth + reminders + Web Push + multi-conv sidebar + companion memory | ⚪ |
+| 8 | Multilingual FR + AR (RTL) | ⚪ |
+| 9 | Onboarding (intake) + design polish | ⚪ |
+| 10 | Production deploy + report + demo | ⚪ |
 
 The full plan lives in `C:\Users\waeld\.windsurf\plans\chronico-diabo-build-plan-6be4f4.md` (local to the lead developer).
 
