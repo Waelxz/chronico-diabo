@@ -63,7 +63,7 @@ export type DiaboState = {
  * From `docs/rive-api.md` examples.
  */
 export const DIABO_PRESETS = {
-  neutral: { mouthState: 0, eyebrowMood: 0, eyelidState: 0, happiness: 0.5 },
+  neutral: { mouthState: 0, eyebrowMood: 0, eyelidState: 0, happiness: 0 },
   happy: { mouthState: 1, eyebrowMood: 1, eyelidState: 0, happiness: 1 },
   sad: { mouthState: 8, eyebrowMood: 2, eyelidState: 1, happiness: 0 },
   worried: { mouthState: 7, eyebrowMood: 3, eyelidState: 0, happiness: 0.1 },
