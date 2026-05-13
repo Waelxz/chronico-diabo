@@ -4,6 +4,7 @@ import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 import { getChatModel } from '@/lib/llm';
 import { DIABO_PERSONA_FR } from '@/lib/diabo/persona';
 import { appendMessage, touchChat } from '@/lib/db/chats';
+import { searchKb, type KbChunkResult } from '@/lib/db/kb';
 
 /**
  * Diabo chat endpoint.
@@ -73,9 +74,26 @@ export async function POST(req: Request) {
     return new Response('Failed to parse messages', { status: 400 });
   }
 
+  // Retrieval-augmented context (sprint 3). Best-effort: KB outage just
+  // falls back to the persona-only prompt — chat never breaks on RAG failure.
+  let retrievedChunks: KbChunkResult[] = [];
+  if (userText) {
+    try {
+      retrievedChunks = await searchKb(userText, 3);
+    } catch (err) {
+      console.warn('[chat] searchKb failed, continuing without RAG:', err);
+    }
+  }
+  const augmentedSystem =
+    retrievedChunks.length > 0
+      ? `${DIABO_PERSONA_FR}\n\n## Contexte issu de la base de connaissances Diabo\nUtilise ces éléments quand c'est pertinent, mais reste empathique et naturel — ne les cite pas comme des sources académiques.\n\n${retrievedChunks
+          .map((c) => `### ${c.title}\n${c.content}`)
+          .join('\n\n')}`
+      : DIABO_PERSONA_FR;
+
   const result = streamText({
     model: getChatModel(),
-    system: DIABO_PERSONA_FR,
+    system: augmentedSystem,
     messages: modelMessages,
     temperature: 0.75,
     onFinish: async ({ text }) => {
