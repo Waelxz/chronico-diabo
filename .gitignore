@@ -29,6 +29,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev-server.log
+
+# screenshots from local browser smoke-tests
+sprint*-*.png
+.playwright-mcp/
+
+# Codex CLI delegation outputs (local notes, not for repo)
+.windsurf/codex-out/
 
 # env files (can opt-in for committing if needed)
 .env

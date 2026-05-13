@@ -10,7 +10,7 @@ const ServerEnvSchema = z.object({
   // LLM
   OPENROUTER_API_KEY: z.string().min(1).optional(),
   OPENROUTER_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
-  OPENROUTER_MODEL: z.string().default('meta-llama/llama-3.3-70b-instruct:free'),
+  OPENROUTER_MODEL: z.string().default('openai/gpt-oss-120b:free'),
 
   // HuggingFace (sentiment + embeddings)
   HUGGINGFACE_ACCESS_TOKEN: z.string().min(1).optional(),

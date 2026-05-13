@@ -1,33 +1,65 @@
 'use client';
 
-import { useRive, Layout, Fit, Alignment } from '@rive-app/react-canvas';
+import { useEffect } from 'react';
+import {
+  Alignment,
+  Fit,
+  Layout,
+  useRive,
+  useViewModelInstanceBoolean,
+} from '@rive-app/react-canvas';
 import {
   DIABO_ARTBOARD,
   DIABO_RIVE_SRC,
   DIABO_STATE_MACHINE,
 } from '@/lib/diabo/types';
+import { useDiaboState } from './DiaboProvider';
 
 export type DiaboStageProps = {
   className?: string;
-  /** Disables auto-bound ViewModel updates (use false only when wiring tests). */
-  autoBind?: boolean;
 };
 
 /**
  * Renders the Diabo Rive avatar with its `Diabo` state machine running.
- * In sprint 0 it just idles (Breathe + EyeIdle + BlinkLayer all autoplay).
- * Later sprints will wrap this with a context provider that drives the
- * `DiaboCon` ViewModel from emotion / chat / gaze inputs.
+ *
+ * The `Diabo` artboard auto-binds the `DiaboCon` ViewModel, then we push
+ * the React-side lifecycle (`isTalking`, `isThinking`) into Rive whenever
+ * `<DiaboProvider>` updates. The avatar must live under a `DiaboProvider`.
  */
-export function DiaboStage({ className, autoBind = true }: DiaboStageProps) {
-  const { RiveComponent } = useRive({
+export function DiaboStage({ className }: DiaboStageProps) {
+  const { rive, RiveComponent } = useRive({
     src: DIABO_RIVE_SRC,
     artboard: DIABO_ARTBOARD,
     stateMachines: DIABO_STATE_MACHINE,
     autoplay: true,
-    autoBind,
+    autoBind: true,
     layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
   });
 
-  return <RiveComponent className={className} aria-label="Diabo, votre compagnon IA" />;
+  const vm = rive?.viewModelInstance ?? null;
+  const { isThinking, isTalking } = useDiaboState();
+
+  const { setValue: setRiveTalking } = useViewModelInstanceBoolean(
+    'isTalking',
+    vm,
+  );
+  const { setValue: setRiveThinking } = useViewModelInstanceBoolean(
+    'isThinking',
+    vm,
+  );
+
+  useEffect(() => {
+    setRiveTalking(Boolean(isTalking));
+  }, [isTalking, setRiveTalking]);
+
+  useEffect(() => {
+    setRiveThinking(Boolean(isThinking));
+  }, [isThinking, setRiveThinking]);
+
+  return (
+    <RiveComponent
+      className={className}
+      aria-label="Diabo, votre compagnon IA"
+    />
+  );
 }
