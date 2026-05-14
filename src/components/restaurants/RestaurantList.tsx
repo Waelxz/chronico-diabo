@@ -96,7 +96,7 @@ export function RestaurantList() {
         label: restaurant.name,
         score: restaurant.score,
         distanceMeters: restaurant.distanceMeters,
-        cuisine: restaurant.cuisine[0],
+        cuisine: [restaurant.cuisine[0], restaurant.opening_hours].filter(Boolean).join(' · '),
         selected: selectedPlaceId === restaurant.place_id,
       })),
     [selectedPlaceId, visibleRestaurants],
@@ -331,9 +331,22 @@ function RestaurantCard({
         </div>
       </div>
 
-      <div className="mt-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
-        {formatDistance(restaurant.distanceMeters)}
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <span className="font-medium text-zinc-700 dark:text-zinc-200">
+          {formatDistance(restaurant.distanceMeters)}
+        </span>
+        {restaurant.opening_hours ? (
+          <span className="truncate pl-3 text-xs text-emerald-700 dark:text-emerald-300">
+            🕐 {restaurant.opening_hours}
+          </span>
+        ) : null}
       </div>
+
+      {restaurant.address ? (
+        <p className="mt-1 truncate text-xs text-zinc-400 dark:text-zinc-500">
+          📍 {restaurant.address}
+        </p>
+      ) : null}
 
       <button
         type="button"

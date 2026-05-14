@@ -231,7 +231,7 @@ export function ChatMessages({ className }: { className?: string }) {
 
   return (
     <div
-      className={`flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-28 pt-4 text-sm ${className ?? ''}`}
+      className={`flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 pt-4 text-sm ${className ?? ''}`}
       aria-live="polite"
     >
       {messages.length === 0 ? (
