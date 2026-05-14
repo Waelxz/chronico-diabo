@@ -42,7 +42,7 @@ export async function rankRestaurants({
   restaurants,
   userLat,
   userLon,
-  maxToScore = 12,
+  maxToScore = 6,
 }: {
   restaurants: RestaurantPoi[];
   userLat: number;
@@ -75,7 +75,7 @@ async function scoreWithLlm(poi: RestaurantPoi): Promise<RestaurantScore> {
     model: getChatModel(),
     schema: ScoreSchema,
     temperature: 0.2,
-    timeout: 12_000,
+    abortSignal: AbortSignal.timeout(15_000),
     system:
       'Tu es Diabo, assistant francophone pour personnes vivant avec le diabète au Maghreb. Tu évalues prudemment des restaurants à partir des tags publics disponibles. Tu ne poses pas de diagnostic médical.',
     prompt: [
