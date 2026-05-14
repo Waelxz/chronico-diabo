@@ -377,17 +377,119 @@ function AssistantRow({ children }: { children: ReactNode }) {
   );
 }
 
-function renderMarkdownLite(text: string): ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\n)/g);
-  return parts.map((part, index) => {
-    if (part === '\n') return <br key={index} />;
+function renderMarkdownLite(text: string): ReactNode {
+  const lines = text.split('\n');
+  const nodes: ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === '') {
+      nodes.push(<div key={i} className="h-2" />);
+      i++;
+      continue;
+    }
+
+    if (/^-{3,}$/.test(line.trim())) {
+      nodes.push(
+        <hr key={i} className="my-2 border-zinc-200 dark:border-zinc-700" />,
+      );
+      i++;
+      continue;
+    }
+
+    const h2 = line.match(/^##\s+(.+)/);
+    if (h2) {
+      nodes.push(
+        <p key={i} className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">
+          {renderInline(h2[1])}
+        </p>,
+      );
+      i++;
+      continue;
+    }
+
+    const h3 = line.match(/^###\s+(.+)/);
+    if (h3) {
+      nodes.push(
+        <p key={i} className="mt-1 font-medium text-zinc-800 dark:text-zinc-200">
+          {renderInline(h3[1])}
+        </p>,
+      );
+      i++;
+      continue;
+    }
+
+    if (/^[-*]\s/.test(line)) {
+      const items: ReactNode[] = [];
+      while (i < lines.length && /^[-*]\s/.test(lines[i])) {
+        const content = lines[i].replace(/^[-*]\s/, '');
+        items.push(
+          <li key={i} className="ml-3 list-disc">
+            {renderInline(content)}
+          </li>,
+        );
+        i++;
+      }
+      nodes.push(
+        <ul key={`ul-${i}`} className="my-1 space-y-0.5 pl-2">
+          {items}
+        </ul>,
+      );
+      continue;
+    }
+
+    if (/^\d+\.\s/.test(line)) {
+      const items: ReactNode[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+        const content = lines[i].replace(/^\d+\.\s/, '');
+        items.push(
+          <li key={i} className="ml-3 list-decimal">
+            {renderInline(content)}
+          </li>,
+        );
+        i++;
+      }
+      nodes.push(
+        <ol key={`ol-${i}`} className="my-1 space-y-0.5 pl-2">
+          {items}
+        </ol>,
+      );
+      continue;
+    }
+
+    nodes.push(
+      <p key={i} className="leading-6">
+        {renderInline(line)}
+      </p>,
+    );
+    i++;
+  }
+
+  return <div className="space-y-0.5">{nodes}</div>;
+}
+
+function renderInline(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+  return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
+      return <strong key={idx}>{part.slice(2, -2)}</strong>;
     }
     if (part.startsWith('*') && part.endsWith('*')) {
-      return <em key={index}>{part.slice(1, -1)}</em>;
+      return <em key={idx}>{part.slice(1, -1)}</em>;
     }
-    return <span key={index}>{part}</span>;
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code
+          key={idx}
+          className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return <span key={idx}>{part}</span>;
   });
 }
 

@@ -26,26 +26,26 @@ export default async function HomePage() {
             </p>
           </header>
 
-          <div className="flex flex-1 overflow-hidden">
-            {signedIn ? <ConversationSidebar /> : null}
+          <div className="flex flex-1 flex-col items-center overflow-hidden lg:flex-row lg:items-stretch">
+            {signedIn ? (
+              <div className="hidden lg:block">
+                <ConversationSidebar />
+              </div>
+            ) : null}
 
-            {/* Mobile: avatar on top, messages+input below */}
-            {/* Desktop (lg+): avatar fixed left, messages+input take remaining space */}
-            <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
-
-              {/* Avatar column */}
-              <div className="flex max-h-[45vh] shrink-0 items-center justify-center px-4 pb-2 pt-2 lg:max-h-none lg:w-80 lg:flex-col lg:justify-center lg:border-r lg:border-zinc-200/60 lg:pb-8 lg:pt-0 dark:lg:border-zinc-800/60 xl:w-96">
-                <div className="size-[220px] sm:size-[260px] lg:size-[320px] xl:size-[380px]">
+            <div className="flex w-full max-w-2xl flex-1 flex-col overflow-hidden px-4 pb-6">
+              <div className="flex shrink-0 justify-center py-4">
+                <div className="size-[260px] lg:size-[320px]">
                   <HomeDiaboStage />
                 </div>
               </div>
 
-              {/* Chat column — messages scroll, input pinned at bottom */}
-              <div className="flex min-w-0 flex-1 flex-col overflow-hidden px-4 pb-6 lg:px-6">
-                <ChatMessages className="w-full flex-1" />
-                <ChatInputBar className="mt-3 rounded-full border border-zinc-200/80 shadow-lg shadow-emerald-950/5 dark:border-zinc-800" />
+              <div className="relative min-h-0 flex-1">
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-emerald-50/95 to-transparent dark:from-zinc-950/95" />
+                <ChatMessages className="h-full" />
               </div>
 
+              <ChatInputBar className="shrink-0 rounded-full border border-zinc-200/80 pb-safe shadow-lg shadow-emerald-950/5 dark:border-zinc-800" />
             </div>
           </div>
         </main>

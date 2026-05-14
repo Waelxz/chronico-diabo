@@ -66,7 +66,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <Sidebar session={session} />
           <DiaboPeekPortal />
-          <main className="ml-[4.5rem] flex min-h-full flex-1 flex-col lg:ml-56">
+          <main className="flex min-h-full flex-1 flex-col lg:ml-[4.5rem] xl:ml-56">
             <div className="transition-opacity duration-200">{children}</div>
           </main>
         </NextIntlClientProvider>

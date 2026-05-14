@@ -53,6 +53,16 @@ export function Sidebar({ session }: SidebarProps) {
     return () => media.removeEventListener('change', sync);
   }, []);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   const compact = !expanded;
   const authAction = session?.user ? signOutCurrentUser : signInWithGoogle;
   const AuthIcon = session?.user ? LogOut : LogIn;
@@ -63,14 +73,19 @@ export function Sidebar({ session }: SidebarProps) {
       <button
         type="button"
         onClick={() => setMobileOpen((value) => !value)}
-        className="fixed left-4 top-4 z-[60] inline-flex size-11 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-white shadow-lg lg:hidden"
+        className="fixed left-3 top-3 z-[60] inline-flex size-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-white shadow-lg shadow-zinc-950/20 transition-all duration-150 hover:border-emerald-500 lg:hidden"
         aria-label={mobileOpen ? 'Fermer la navigation' : 'Ouvrir la navigation'}
         aria-expanded={mobileOpen}
       >
         {mobileOpen ? (
           <X className="size-5" aria-hidden />
         ) : (
-          <Menu className="size-5" aria-hidden />
+          <>
+            <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-emerald-500 text-[10px] font-bold text-zinc-950">
+              D
+            </span>
+            <Menu className="size-5" aria-hidden />
+          </>
         )}
       </button>
 
@@ -114,7 +129,7 @@ export function Sidebar({ session }: SidebarProps) {
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-5">
+        <nav className="flex-1 space-y-1 px-3 pb-5 pt-16 lg:pt-5">
           {navItems.map((item) => (
             <SidebarLink
               key={item.href}

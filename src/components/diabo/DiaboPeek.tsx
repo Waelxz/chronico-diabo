@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { DiaboProvider, useDiabo } from '@/components/diabo/DiaboProvider';
+import { useEffect, useRef, useState } from 'react';
+import { DiaboProvider } from '@/components/diabo/DiaboProvider';
 import { DiaboStage } from '@/components/diabo/DiaboStage';
+import { useDiaboLook } from '@/hooks/useDiaboLook';
 
 export function DiaboPeek() {
   const [visible, setVisible] = useState(false);
@@ -20,23 +21,8 @@ export function DiaboPeek() {
 }
 
 function DiaboPeekInner({ visible }: { visible: boolean }) {
-  const { patch } = useDiabo();
-
-  useEffect(() => {
-    function handleMouseMove(event: MouseEvent) {
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2;
-      const dx = (event.clientX - cx) / cx;
-      const dy = (event.clientY - cy) / cy;
-      patch({ lookX: dx * 6, lookY: dy * 4 });
-    }
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      patch({ lookX: 0, lookY: 0 });
-    };
-  }, [patch]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useDiaboLook(containerRef);
 
   return (
     /*
@@ -46,6 +32,7 @@ function DiaboPeekInner({ visible }: { visible: boolean }) {
      * Entrance: slides up 96px (its own height) from below the viewport.
      */
     <div
+      ref={containerRef}
       className={`fixed bottom-0 right-6 z-50 h-36 w-40 overflow-hidden transition-transform duration-500 ease-out ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
