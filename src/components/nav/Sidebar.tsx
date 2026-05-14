@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ComponentType } from 'react';
 import type { Session } from 'next-auth';
 import {
   Activity,
@@ -40,18 +40,64 @@ const navItems: NavItem[] = [
   { label: 'Rappels', href: '/reminders', icon: Bell },
 ];
 
+const SIDEBAR_WIDTH = {
+  compact: '4.5rem',
+  expanded: '14rem',
+} as const;
+const SIDEBAR_STORAGE_KEY = 'diabo_sidebar_expanded';
+const sidebarExpandedListeners = new Set<() => void>();
+
+function setRootSidebarWidth(expanded: boolean) {
+  document.documentElement.style.setProperty(
+    '--sidebar-w',
+    expanded ? SIDEBAR_WIDTH.expanded : SIDEBAR_WIDTH.compact,
+  );
+}
+
+function getStoredSidebarExpanded() {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true';
+}
+
+function getServerSidebarExpanded() {
+  return false;
+}
+
+function subscribeSidebarExpanded(listener: () => void) {
+  sidebarExpandedListeners.add(listener);
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === SIDEBAR_STORAGE_KEY) {
+      listener();
+    }
+  };
+
+  window.addEventListener('storage', handleStorage);
+
+  return () => {
+    sidebarExpandedListeners.delete(listener);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+function setStoredSidebarExpanded(expanded: boolean) {
+  window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(expanded));
+  setRootSidebarWidth(expanded);
+  sidebarExpandedListeners.forEach((listener) => listener());
+}
+
 export function Sidebar({ session }: SidebarProps) {
   const pathname = usePathname();
-  const [expanded, setExpanded] = useState(false);
+  const expanded = useSyncExternalStore(
+    subscribeSidebarExpanded,
+    getStoredSidebarExpanded,
+    getServerSidebarExpanded,
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('diabo_sidebar_expanded');
-    if (saved === 'true') {
-      setExpanded(true);
-      document.body.classList.add('sidebar-expanded');
-    }
-  }, []);
+    setRootSidebarWidth(expanded);
+  }, [expanded]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -164,12 +210,7 @@ export function Sidebar({ session }: SidebarProps) {
 
           <button
             type="button"
-            onClick={() => setExpanded((value) => {
-              const next = !value;
-              window.localStorage.setItem('diabo_sidebar_expanded', String(next));
-              document.body.classList.toggle('sidebar-expanded', next);
-              return next;
-            })}
+            onClick={() => setStoredSidebarExpanded(!expanded)}
             className="hidden h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 lg:inline-flex"
             aria-label={expanded ? 'Réduire la navigation' : 'Déployer la navigation'}
             aria-expanded={expanded}

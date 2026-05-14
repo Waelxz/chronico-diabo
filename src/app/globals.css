@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --sidebar-w: 4.5rem;
 }
 
 @theme inline {
@@ -43,8 +44,8 @@ body {
 }
 
 @media (min-width: 1024px) {
-  body.sidebar-expanded > * > main {
-    margin-left: 14rem; /* 56 = 14rem, matches w-56 sidebar */
+  main[data-sidebar-main] {
+    margin-left: var(--sidebar-w, 4.5rem) !important;
     transition: margin-left 300ms ease-in-out;
   }
 }
