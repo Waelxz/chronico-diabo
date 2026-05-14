@@ -26,6 +26,8 @@ export type MessageDoc = {
   chatId: string;
   role: 'user' | 'assistant';
   content: string;
+  /** Arbitrary side-channel data (e.g. RAG citations). Optional. */
+  metadata?: Record<string, unknown>;
   createdAt: Date;
 };
 
@@ -56,17 +58,22 @@ export async function appendMessage(
   chatId: string,
   role: MessageDoc['role'],
   content: string,
+  metadata?: Record<string, unknown>,
 ): Promise<void> {
   const [chats, msgs] = await Promise.all([chatsCol(), messagesCol()]);
   if (!chats || !msgs) return;
   const now = new Date();
-  await msgs.insertOne({
+  const doc: MessageDoc = {
     _id: new ObjectId(),
     chatId,
     role,
     content,
     createdAt: now,
-  });
+  };
+  if (metadata && Object.keys(metadata).length > 0) {
+    doc.metadata = metadata;
+  }
+  await msgs.insertOne(doc);
   const lastKey = role === 'user' ? 'lastUserMessage' : 'lastAssistantMessage';
   await chats.updateOne(
     { _id: chatId },

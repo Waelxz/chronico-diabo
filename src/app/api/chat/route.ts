@@ -1,10 +1,22 @@
 import { cookies } from 'next/headers';
 import { ObjectId } from 'mongodb';
-import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  tool,
+  type UIMessage,
+} from 'ai';
+import { z } from 'zod';
 import { getChatModel } from '@/lib/llm';
 import { DIABO_PERSONA_FR } from '@/lib/diabo/persona';
 import { appendMessage, touchChat } from '@/lib/db/chats';
 import { searchKb, type KbChunkResult } from '@/lib/db/kb';
+import { findRestaurantsForChat } from '@/lib/restaurants/tool';
+import type {
+  DiaboMessageMetadata,
+  KbCitation,
+} from '@/lib/diabo/citations';
 
 /**
  * Diabo chat endpoint.
@@ -23,6 +35,8 @@ export const maxDuration = 60;
 
 const COOKIE_NAME = 'diabo_chat_id';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+const RESTAURANT_TOOL_INSTRUCTIONS =
+  "Si l'utilisateur demande des restaurants, appelle findRestaurants. Réponds ensuite en français avec les 3 meilleurs choix, leur score, le niveau de glucides et une phrase de prudence. Si la position est approximative, dis-le brièvement et propose de partager une localisation plus précise.";
 
 type ChatRequestBody = { messages: UIMessage[] };
 
@@ -88,13 +102,41 @@ export async function POST(req: Request) {
     retrievedChunks.length > 0
       ? `${DIABO_PERSONA_FR}\n\n## Contexte issu de la base de connaissances Diabo\nUtilise ces éléments quand c'est pertinent, mais reste empathique et naturel — ne les cite pas comme des sources académiques.\n\n${retrievedChunks
           .map((c) => `### ${c.title}\n${c.content}`)
-          .join('\n\n')}`
-      : DIABO_PERSONA_FR;
+          .join('\n\n')}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`
+      : `${DIABO_PERSONA_FR}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`;
+
+  // Surface KB chunks as message-level citations: streamed to the client
+  // for the chips UI, AND persisted with the assistant message so a refresh
+  // keeps them. We drop the full content here — only topic/title/score.
+  const citations: KbCitation[] = retrievedChunks.map((c) => ({
+    topic: c.topic,
+    title: c.title,
+    score: Math.round((c.score ?? 0) * 1000) / 1000,
+  }));
 
   const result = streamText({
     model: getChatModel(),
     system: augmentedSystem,
     messages: modelMessages,
+    tools: {
+      findRestaurants: tool({
+        description:
+          'Trouve des restaurants proches et évalue leur compatibilité probable avec une alimentation diabétique.',
+        inputSchema: z.object({
+          near: z
+            .string()
+            .describe(
+              'Zone demandée par l’utilisateur, par exemple "Tunis", "La Marsa" ou "36.8065,10.1815".',
+            ),
+          dietPrefs: z
+            .array(z.string())
+            .optional()
+            .describe('Préférences éventuelles: grillade, poisson, salade, etc.'),
+        }),
+        execute: findRestaurantsForChat,
+      }),
+    },
+    stopWhen: stepCountIs(3),
     temperature: 0.75,
     onFinish: async ({ text }) => {
       const trimmed = text?.trim();
@@ -105,7 +147,9 @@ export async function POST(req: Request) {
       // field on the chat doc). Fire-and-forget here gets the function
       // killed mid-write on serverless.
       try {
-        await appendMessage(chatId, 'assistant', trimmed);
+        const meta =
+          citations.length > 0 ? { kbCitations: citations } : undefined;
+        await appendMessage(chatId, 'assistant', trimmed, meta);
       } catch (err) {
         console.error('[chat] appendMessage(assistant) failed:', err);
       }
@@ -123,5 +167,13 @@ export async function POST(req: Request) {
 
   return result.toUIMessageStreamResponse({
     headers,
+    // Attach citations to the assistant message metadata on stream start.
+    // The client reads `message.metadata.kbCitations` to render chips.
+    messageMetadata: ({ part }): DiaboMessageMetadata | undefined => {
+      if (part.type === 'start' && citations.length > 0) {
+        return { kbCitations: citations };
+      }
+      return undefined;
+    },
   });
 }

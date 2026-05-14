@@ -23,6 +23,7 @@ type UIMessageLike = {
   id: string;
   role: 'user' | 'assistant';
   parts: Array<{ type: 'text'; text: string }>;
+  metadata?: Record<string, unknown>;
 };
 
 export async function GET() {
@@ -34,11 +35,17 @@ export async function GET() {
 
   try {
     const docs = await listMessages(chatId, 200);
-    const messages: UIMessageLike[] = docs.map((d) => ({
-      id: d._id.toHexString(),
-      role: d.role,
-      parts: [{ type: 'text', text: d.content }],
-    }));
+    const messages: UIMessageLike[] = docs.map((d) => {
+      const msg: UIMessageLike = {
+        id: d._id.toHexString(),
+        role: d.role,
+        parts: [{ type: 'text', text: d.content }],
+      };
+      if (d.metadata && Object.keys(d.metadata).length > 0) {
+        msg.metadata = d.metadata;
+      }
+      return msg;
+    });
     return Response.json({ chatId, messages });
   } catch (err) {
     console.error('[chats/current/messages] listMessages failed:', err);

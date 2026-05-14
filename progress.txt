@@ -2,6 +2,71 @@ Diabo · progress log
 ====================
 (Append-only. Newest entry on top.)
 
+----- 2026-05-14 03:30 UTC+01 — sprint 4 verify + integration, Cascade-orchestrated -----
+
+WORKFLOW
+--------
+- Cascade (Windsurf) → drove a Codex CLI delegation pass for the bulk verification work.
+- Codex prompt + report live at .windsurf/codex-out/sprint4-verify.{prompt,report}.md (gitignored).
+- Token-saving experiment: Cascade only did decisions + IDE tools (Playwright, MongoDB MCP), Codex did read/run/fix.
+
+WHAT LANDED (uncommitted before this entry, all staged together)
+-----------------------------------------------------------------
+Sprint 4 — Restaurants module (Overpass + LLM scoring + Leaflet)
+
+NEW FILES
+  src/lib/overpass.ts                  Overpass HTTP client with 10s AbortController + normalization
+  src/lib/geo.ts                       Haversine + bounding box helpers
+  src/lib/restaurant-scorer.ts         AI SDK generateObject (LLM 0-100 score + carb_load_tier + rationale)
+                                       + heuristic fallback when LLM unavailable
+  src/lib/restaurants/types.ts         RestaurantPoi/Score/RankedRestaurant + FR helpers
+  src/lib/restaurants/tool.ts          findRestaurantsForChat() — LLM tool exposed in /api/chat
+  src/lib/db/restaurants.ts            reco_cache collection with 30-day TTL + unique place_id + lat/lon index
+  src/lib/diabo/citations.ts           KB citation surfacing (sprint 3 polish bundled in)
+  src/app/api/places/restaurants/route.ts   GET lat/lon/radius/cuisine → live or cache fallback
+  src/app/restaurants/page.tsx         Standalone /restaurants page
+  src/components/restaurants/RestaurantList.tsx   Sidebar filters + score-coded cards
+  src/components/restaurants/RestaurantMap.tsx    Leaflet via CDN, divIcon markers, popups
+  scripts/smoke-restaurants.mjs        node ESM smoke test against /api/places/restaurants
+
+MODIFIED FILES
+  src/app/api/chat/route.ts            Tool wiring: findRestaurants as AI SDK tool, stepCountIs(3),
+                                       system prompt instructions for when to call it.
+                                       KB citation metadata generation + streaming.
+  src/app/api/chats/current/messages/route.ts   Passes metadata through to client for rehydration.
+  src/components/chat/ChatPanel.tsx    Renders citation chips under assistant bubbles.
+  src/lib/db/chats.ts                  MessageDoc optional metadata field.
+
+VERIFICATION (Cascade + Codex)
+------------------------------
+- typecheck ✓  (Codex: 51s clean; Cascade: clean)
+- lint ✓       (Codex: 141s clean after npm.cmd workaround; Cascade: clean)
+- build ✓      (Cascade local: 35s compile, 9.4s TS, 9/9 static, /restaurants + /api/places/restaurants present)
+- Live smoke (Tunis 36.8065,10.1815, dev server localhost:3000):
+   HTTP 200 · source: live
+   1. Chez Slah Restaurant · 70/100 · fish · 547m
+   2. Ommok Sannefa · 62/100 · 227m
+   3. Steak Haus · 62/100 · steak_house · 461m
+- Browser /restaurants @ localhost:3000 via Playwright:
+   Leaflet map renders, score-coded markers, sidebar filters work, 0 console errors/warnings.
+
+NOTES / GOTCHAS
+---------------
+- Codex's workspace-write sandbox blocks network → next/font/google failed at build inside Codex.
+  Codex auto-removed Geist/Geist_Mono as a workaround. Cascade reverted that — it's a sandbox
+  limitation, NOT a real bug. Local + Vercel builds have internet and work fine.
+- LLM scoring uses generateObject with zod schema (score 0-100, rationale 12-260 chars, carb_load_tier).
+  Falls back to a deterministic heuristic if OPENROUTER_API_KEY missing or LLM call throws.
+- Atlas reco_cache TTL = 30 days. Cache is also used as a graceful degradation fallback when
+  Overpass times out (AbortController @ 10s).
+- Free-tier compliant: Overpass (no key), OSM tiles via Leaflet CDN, OpenRouter free models.
+
+DEFERRED TO LATER
+-----------------
+- Citation surfacing in ChatPanel still uses sprint 3 KB chunks only — restaurant tool results
+  flow through the LLM as tool messages, not citation chips. Probably correct: chat answer text
+  itself names the restaurants, no extra chip needed. Re-check after a live chat smoke.
+
 ----- 2026-05-14 00:21 UTC+01 — autonomous AFK hour, sprints 1+, 2, 3 -----
 
 WHAT LANDED IN PROD

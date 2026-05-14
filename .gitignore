@@ -36,8 +36,8 @@ build.log
 sprint*-*.png
 .playwright-mcp/
 
-# Codex CLI delegation outputs (local notes, not for repo)
-.windsurf/codex-out/
+# Local orchestration notes (Codex outputs, plan files, etc.)
+.windsurf/
 
 # env files (can opt-in for committing if needed)
 .env

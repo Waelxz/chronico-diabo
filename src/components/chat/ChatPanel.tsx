@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useDiabo } from '@/components/diabo/DiaboProvider';
+import type {
+  DiaboMessageMetadata,
+  KbCitation,
+} from '@/lib/diabo/citations';
 
 type ChatPanelProps = {
   className?: string;
@@ -47,6 +51,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
             id: string;
             role: 'user' | 'assistant';
             parts: Array<{ type: 'text'; text: string }>;
+            metadata?: DiaboMessageMetadata;
           }>;
         };
         if (cancelled) return;
@@ -146,15 +151,27 @@ export function ChatPanel({ className }: ChatPanelProps) {
         {messages.length === 0 ? (
           hydrating ? <HydratingState /> : <EmptyState />
         ) : (
-          messages.map((m) => (
-            <Bubble key={m.id} role={m.role}>
-              {m.parts
-                .filter((p) => p.type === 'text')
-                .map((p, i) => (
-                  <span key={i}>{(p as { type: 'text'; text: string }).text}</span>
-                ))}
-            </Bubble>
-          ))
+          messages.map((m) => {
+            const meta = (m as { metadata?: DiaboMessageMetadata }).metadata;
+            const citations =
+              m.role === 'assistant' ? meta?.kbCitations : undefined;
+            return (
+              <div key={m.id} className="space-y-1">
+                <Bubble role={m.role}>
+                  {m.parts
+                    .filter((p) => p.type === 'text')
+                    .map((p, i) => (
+                      <span key={i}>
+                        {(p as { type: 'text'; text: string }).text}
+                      </span>
+                    ))}
+                </Bubble>
+                {citations && citations.length > 0 ? (
+                  <Citations items={citations} />
+                ) : null}
+              </div>
+            );
+          })
         )}
         {status === 'submitted' ? (
           <Bubble role="assistant" pending>
@@ -261,5 +278,32 @@ function TypingDots() {
       <span className="size-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.15s]" />
       <span className="size-1.5 animate-bounce rounded-full bg-emerald-500" />
     </span>
+  );
+}
+
+/**
+ * Renders the RAG citations Diabo consulted to answer the last message.
+ * Soft emerald pills under the assistant bubble — informational, not
+ * clickable (sprint-9 polish could open the chunk in a side sheet).
+ */
+function Citations({ items }: { items: KbCitation[] }) {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-1.5 pl-1 pt-0.5"
+      aria-label="Sources consultées par Diabo"
+    >
+      <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/80">
+        Diabo a consulté ·
+      </span>
+      {items.map((c) => (
+        <span
+          key={c.title}
+          title={`Pertinence : ${(c.score * 100).toFixed(0)} %`}
+          className="inline-flex items-center rounded-full border border-emerald-200/70 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/50 dark:text-emerald-200"
+        >
+          {c.title}
+        </span>
+      ))}
+    </div>
   );
 }
