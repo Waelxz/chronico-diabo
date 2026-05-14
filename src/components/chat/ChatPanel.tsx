@@ -62,6 +62,16 @@ export function ChatPanel({
       new DefaultChatTransport({
         api: '/api/chat',
         body: signedIn ? { chatId: activeChatId } : undefined,
+        headers: () => ({
+          'x-diabo-profile':
+            typeof window !== 'undefined'
+              ? (localStorage.getItem('diabo_profile') ?? '')
+              : '',
+          'x-anon-id':
+            typeof window !== 'undefined'
+              ? (localStorage.getItem('diabo_anon_id') ?? '')
+              : '',
+        }),
         fetch: async (input, init) => {
           const response = await fetch(input, init);
           const nextChatId = response.headers.get('x-diabo-chat-id');

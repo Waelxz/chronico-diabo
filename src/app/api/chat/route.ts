@@ -10,6 +10,7 @@ import {
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { getChatModel } from '@/lib/llm';
+import { getDb } from '@/lib/mongodb';
 import { DIABO_PERSONA_FR } from '@/lib/diabo/persona';
 import { appendMessage, touchChat, userOwnsChat } from '@/lib/db/chats';
 import { getProfile, type CompanionProfile } from '@/lib/db/companion';
@@ -43,6 +44,14 @@ const RESTAURANT_TOOL_INSTRUCTIONS =
 
 type ChatRequestBody = { messages: UIMessage[]; chatId?: string | null };
 
+const onboardingProfileSchema = z.object({
+  diabetesType: z.enum(['t1', 't2', 'pre', 'unknown']).optional(),
+  goal: z.enum(['glucose', 'restaurants', 'travel', 'emotional']).optional(),
+  name: z.string().trim().max(80).optional(),
+});
+
+type OnboardingProfile = z.infer<typeof onboardingProfileSchema>;
+
 function extractText(message: UIMessage | undefined): string {
   if (!message) return '';
   return message.parts
@@ -70,6 +79,7 @@ export async function POST(req: Request) {
   const userId = session?.user?.id;
   const cookieStore = await cookies();
   const existingChatId = cookieStore.get(COOKIE_NAME)?.value;
+  const anonId = req.headers.get('x-anon-id') ?? existingChatId ?? null;
   let chatId = existingChatId ?? new ObjectId().toHexString();
   let isNewChat = !existingChatId;
 
@@ -124,6 +134,17 @@ export async function POST(req: Request) {
           .map((c) => `### ${c.title}\n${c.content}`)
           .join('\n\n')}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`
       : `${DIABO_PERSONA_FR}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`;
+
+  const onboardingProfile = await getOnboardingProfile(req, userId, anonId).catch(
+    (err) => {
+      console.warn('[chat] getOnboardingProfile failed, continuing:', err);
+      return null;
+    },
+  );
+  const onboardingBlock = buildOnboardingProfileBlock(onboardingProfile);
+  if (onboardingBlock) {
+    augmentedSystem = `${augmentedSystem}\n\n${onboardingBlock}`;
+  }
 
   const profile = await getProfile(chatId).catch((err) => {
     console.warn('[chat] getProfile failed, continuing without memory:', err);
@@ -252,4 +273,67 @@ function diabetesTypeLabel(type: CompanionProfile['diabetesType']): string {
     default:
       return 'non précisé';
   }
+}
+
+async function getOnboardingProfile(
+  req: Request,
+  userId: string | undefined,
+  anonId: string | null,
+): Promise<OnboardingProfile | null> {
+  const headerProfile = parseOnboardingProfileHeader(
+    req.headers.get('x-diabo-profile'),
+  );
+  if (headerProfile) return headerProfile;
+
+  const db = await getDb();
+  if (!db) return null;
+
+  const filter = userId ? { userId } : anonId ? { anonId } : null;
+  if (!filter) return null;
+
+  const doc = await db.collection('users').findOne(filter);
+  const parsed = onboardingProfileSchema.safeParse({
+    diabetesType: doc?.diabetesType,
+    goal: doc?.goal,
+    name: doc?.name,
+  });
+  return parsed.success ? parsed.data : null;
+}
+
+function parseOnboardingProfileHeader(
+  value: string | null,
+): OnboardingProfile | null {
+  if (!value) return null;
+  try {
+    const parsed = onboardingProfileSchema.safeParse(JSON.parse(value));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildOnboardingProfileBlock(profile: OnboardingProfile | null): string {
+  if (!profile) return '';
+  const lines: string[] = [];
+  if (profile.name) lines.push(`L'utilisateur s'appelle ${profile.name}.`);
+  if (profile.diabetesType === 't1') {
+    lines.push('Il vit avec un diabète de type 1.');
+  }
+  if (profile.diabetesType === 't2') {
+    lines.push('Il vit avec un diabète de type 2.');
+  }
+  if (profile.diabetesType === 'pre') {
+    lines.push('Il est en situation de pré-diabète.');
+  }
+  if (profile.goal === 'emotional') {
+    lines.push(
+      "Son objectif principal est le soutien émotionnel. Priorise l'empathie.",
+    );
+  }
+  if (profile.goal === 'glucose') {
+    lines.push(
+      'Son objectif principal est la gestion de la glycémie. Priorise les conseils pratiques.',
+    );
+  }
+  return lines.length > 0 ? lines.join('\n') : '';
 }

@@ -33,15 +33,15 @@ function DiaboPeekInner({ visible }: { visible: boolean }) {
      */
     <div
       ref={containerRef}
-      className={`fixed bottom-0 right-6 z-50 h-36 w-40 overflow-hidden transition-transform duration-500 ease-out ${
+      className={`fixed bottom-0 right-4 z-50 h-44 w-52 overflow-hidden transition-transform duration-500 ease-out ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
       aria-hidden="true"
     >
       {/* Frosted strip behind the avatar so it reads on any background */}
-      <div className="absolute inset-x-0 bottom-0 h-3 rounded-t-full bg-white/60 backdrop-blur-sm dark:bg-zinc-950/60" />
+      <div className="absolute inset-x-0 bottom-0 h-4 rounded-t-full bg-white/60 backdrop-blur-sm dark:bg-zinc-950/60" />
       {/* Canvas is 2.5× the clip height — top of avatar (head) sits in clip window */}
-      <DiaboStage className="absolute inset-x-0 top-0 h-[340px] w-full" />
+      <DiaboStage className="absolute inset-x-0 top-0 h-[420px] w-full" />
     </div>
   );
 }
