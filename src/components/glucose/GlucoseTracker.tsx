@@ -82,6 +82,7 @@ export function GlucoseTracker() {
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [referenceTime, setReferenceTime] = useState(0);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -96,6 +97,7 @@ export function GlucoseTracker() {
         throw new Error(data.error ?? 'Chargement impossible');
       }
       setLogs(data.logs ?? []);
+      setReferenceTime(Date.now());
     } catch (err) {
       setError(
         err instanceof Error
@@ -109,7 +111,10 @@ export function GlucoseTracker() {
   }, []);
 
   useEffect(() => {
-    void loadLogs();
+    const timeoutId = window.setTimeout(() => {
+      void loadLogs();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadLogs]);
 
   const chartLogs = useMemo(
@@ -123,9 +128,9 @@ export function GlucoseTracker() {
 
   const recentLogs = useMemo(() => logs.slice(0, 10), [logs]);
   const weeklyLogs = useMemo(() => {
-    const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const since = referenceTime - 7 * 24 * 60 * 60 * 1000;
     return logs.filter((log) => new Date(log.measuredAt).getTime() >= since);
-  }, [logs]);
+  }, [logs, referenceTime]);
 
   const target = unit === 'mg/dL' ? { low: 70, high: 140 } : { low: 3.9, high: 7.8 };
   const maxChartValue = Math.max(
@@ -173,6 +178,7 @@ export function GlucoseTracker() {
         );
         return merged;
       });
+      setReferenceTime(Date.now());
       setValue('');
       setNote('');
     } catch (err) {
@@ -200,6 +206,7 @@ export function GlucoseTracker() {
         throw new Error(data.error ?? 'Suppression impossible');
       }
       setLogs((current) => current.filter((log) => log._id !== logId));
+      setReferenceTime((current) => current + 1);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Impossible de supprimer la mesure',
@@ -491,7 +498,7 @@ export function GlucoseTracker() {
           </h2>
           {loading ? (
             <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-              Chargement de l'historique...
+              Chargement de l&apos;historique...
             </div>
           ) : recentLogs.length === 0 ? (
             <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">

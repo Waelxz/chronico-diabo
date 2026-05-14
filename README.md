@@ -100,7 +100,7 @@ Requirements: **Node 20.9+** (Next.js 16 requirement; we test on Node 24).
 | 4 | Restaurants module (Overpass + LLM scoring + Leaflet) + KB citation chips | 🟢 done |
 | 5 | Hotels + travel module | 🟢 done |
 | 6 | Glucose tracker (manual) — log/chart/weekly LLM summary + PDF export | 🟢 done |
-| 7 | Auth + reminders + Web Push + multi-conv sidebar + companion memory | ⚪ |
+| 7 | Auth + reminders + Web Push + multi-conv sidebar + companion memory | 🟢 done |
 | 8 | Multilingual FR + AR (RTL) | ⚪ |
 | 9 | Onboarding (intake) + design polish | ⚪ |
 | 10 | Production deploy + report + demo | ⚪ |

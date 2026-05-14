@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { getChatModel } from '@/lib/llm';
 import { DIABO_PERSONA_FR } from '@/lib/diabo/persona';
 import { appendMessage, touchChat } from '@/lib/db/chats';
+import { getProfile, type CompanionProfile } from '@/lib/db/companion';
 import { searchKb, type KbChunkResult } from '@/lib/db/kb';
 import { findHotelsForChat } from '@/lib/hotels/tool';
 import { findRestaurantsForChat } from '@/lib/restaurants/tool';
@@ -99,12 +100,23 @@ export async function POST(req: Request) {
       console.warn('[chat] searchKb failed, continuing without RAG:', err);
     }
   }
-  const augmentedSystem =
+  let augmentedSystem =
     retrievedChunks.length > 0
       ? `${DIABO_PERSONA_FR}\n\n## Contexte issu de la base de connaissances Diabo\nUtilise ces éléments quand c'est pertinent, mais reste empathique et naturel — ne les cite pas comme des sources académiques.\n\n${retrievedChunks
           .map((c) => `### ${c.title}\n${c.content}`)
           .join('\n\n')}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`
       : `${DIABO_PERSONA_FR}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`;
+
+  const profile = await getProfile(chatId).catch((err) => {
+    console.warn('[chat] getProfile failed, continuing without memory:', err);
+    return null;
+  });
+  if (profile) {
+    const memoryBlock = buildMemoryBlock(profile);
+    if (memoryBlock) {
+      augmentedSystem = `${memoryBlock}\n\n${augmentedSystem}`;
+    }
+  }
 
   // Surface KB chunks as message-level citations: streamed to the client
   // for the chips UI, AND persisted with the assistant message so a refresh
@@ -189,4 +201,36 @@ export async function POST(req: Request) {
       return undefined;
     },
   });
+}
+
+function buildMemoryBlock(profile: CompanionProfile): string {
+  const parts: string[] = [];
+  if (profile.name) parts.push(`Prénom: ${profile.name}.`);
+  if (profile.diabetesType) {
+    parts.push(`Diabète: ${diabetesTypeLabel(profile.diabetesType)}.`);
+  }
+  if (profile.treatment) parts.push(`Traitement: ${profile.treatment}.`);
+  if (profile.goals?.length) parts.push(`Objectifs: ${profile.goals.join(', ')}.`);
+  if (profile.restrictions?.length) {
+    parts.push(`Restrictions: ${profile.restrictions.join(', ')}.`);
+  }
+  if (profile.city) parts.push(`Ville: ${profile.city}.`);
+  return parts.length > 0 ? `## Mémoire utilisateur\n${parts.join(' ')}` : '';
+}
+
+function diabetesTypeLabel(type: CompanionProfile['diabetesType']): string {
+  switch (type) {
+    case '1':
+      return 'type 1';
+    case '2':
+      return 'type 2';
+    case 'gestational':
+      return 'gestationnel';
+    case 'prediabetes':
+      return 'prédiabète';
+    case 'other':
+      return 'autre';
+    default:
+      return 'non précisé';
+  }
 }
