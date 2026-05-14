@@ -62,7 +62,7 @@ export default async function LocaleLayout({
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex h-full font-sans">
+      <body className="flex h-full bg-zinc-950 font-sans">
         <NextIntlClientProvider messages={messages}>
           <Sidebar session={session} />
           <DiaboPeekPortal />

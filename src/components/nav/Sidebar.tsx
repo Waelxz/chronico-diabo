@@ -99,7 +99,7 @@ export function Sidebar({ session }: SidebarProps) {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-56 flex-col border-r border-zinc-800 bg-zinc-950 text-zinc-400 shadow-2xl transition-[width,transform] duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-56 flex-col border-r border-zinc-800/60 bg-zinc-900/95 text-zinc-400 shadow-2xl backdrop-blur-sm transition-[width,transform] duration-300 ease-in-out lg:translate-x-0 ${
           expanded ? 'lg:w-56' : 'lg:w-[4.5rem]'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Navigation principale"
