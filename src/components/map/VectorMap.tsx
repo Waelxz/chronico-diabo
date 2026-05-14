@@ -166,7 +166,7 @@ export function VectorMap({
   return (
     <div
       ref={containerRef}
-      className={`h-full w-full bg-zinc-100 dark:bg-zinc-900 ${className ?? ''}`}
+      className={`w-full bg-zinc-100 dark:bg-zinc-900 ${className ?? ''}`}
       aria-label="Carte des lieux recommandés"
     />
   );
