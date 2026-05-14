@@ -28,14 +28,24 @@ export default async function HomePage() {
 
           <div className="flex flex-1 overflow-hidden">
             {signedIn ? <ConversationSidebar /> : null}
-            <div className="flex min-w-0 flex-1 flex-col items-center justify-end gap-6 px-4 pb-6">
-              <ChatMessages className="w-full max-w-2xl" />
-              <div className="flex w-full max-w-2xl flex-col items-center gap-4">
-                <div className="size-[200px] shrink-0 lg:size-[280px]">
+
+            {/* Mobile: avatar on top, messages+input below */}
+            {/* Desktop (lg+): avatar fixed left, messages+input take remaining space */}
+            <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
+
+              {/* Avatar column — centered on mobile (above chat), left panel on desktop */}
+              <div className="flex shrink-0 items-center justify-center px-4 pb-2 pt-4 lg:w-64 lg:flex-col lg:justify-center lg:pb-8 lg:pt-0 xl:w-80">
+                <div className="size-[160px] sm:size-[200px] lg:size-[240px] xl:size-[280px]">
                   <HomeDiaboStage />
                 </div>
-                <ChatInputBar className="rounded-full border border-zinc-200/80 shadow-lg shadow-emerald-950/5 dark:border-zinc-800" />
               </div>
+
+              {/* Chat column — messages scroll, input pinned at bottom */}
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden px-4 pb-6 lg:px-0 lg:pr-6">
+                <ChatMessages className="w-full flex-1" />
+                <ChatInputBar className="mt-3 rounded-full border border-zinc-200/80 shadow-lg shadow-emerald-950/5 dark:border-zinc-800" />
+              </div>
+
             </div>
           </div>
         </main>

@@ -39,13 +39,20 @@ function DiaboPeekInner({ visible }: { visible: boolean }) {
   }, [patch]);
 
   return (
+    /*
+     * Outer: clipping window — only top half of avatar is visible.
+     * Height = half the avatar render size (96px visible, 192px canvas).
+     * Positioned flush with the bottom edge.
+     * Entrance: slides up 96px (its own height) from below the viewport.
+     */
     <div
-      className={`fixed bottom-6 right-6 z-50 size-24 overflow-hidden rounded-full border border-emerald-200/70 bg-white/90 shadow-xl shadow-emerald-950/10 transition-all duration-200 dark:border-emerald-900/60 dark:bg-zinc-950/90 ${
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+      className={`fixed bottom-0 right-8 z-50 h-24 w-24 overflow-hidden transition-transform duration-500 ease-out ${
+        visible ? 'translate-y-0' : 'translate-y-full'
       }`}
       aria-hidden="true"
     >
-      <DiaboStage className="h-full w-full" />
+      {/* Avatar canvas is 2× the clip height so only the top half shows */}
+      <DiaboStage className="absolute inset-x-0 top-0 h-[192px] w-full" />
     </div>
   );
 }
