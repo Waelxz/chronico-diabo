@@ -61,6 +61,32 @@ body {
   color: var(--foreground);
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #059669 #18181b;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #18181b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #52525b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}
+
+textarea {
+  resize: none;
+}
+
 @media (min-width: 1024px) {
   main[data-sidebar-main] {
     margin-left: var(--sidebar-w, 4.5rem) !important;
