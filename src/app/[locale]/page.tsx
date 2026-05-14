@@ -34,8 +34,8 @@ export default async function HomePage() {
             <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
 
               {/* Avatar column — centered on mobile (above chat), left panel on desktop */}
-              <div className="flex shrink-0 items-center justify-center px-4 pb-2 pt-4 lg:w-64 lg:flex-col lg:justify-center lg:pb-8 lg:pt-0 xl:w-80">
-                <div className="size-[160px] sm:size-[200px] lg:size-[240px] xl:size-[280px]">
+              <div className="flex shrink-0 items-center justify-center px-4 pb-2 pt-4 lg:w-80 lg:flex-col lg:justify-center lg:pb-8 lg:pt-0 xl:w-96">
+                <div className="size-[240px] sm:size-[280px] lg:size-[320px] xl:size-[380px]">
                   <HomeDiaboStage />
                 </div>
               </div>

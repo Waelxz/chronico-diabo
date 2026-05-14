@@ -78,6 +78,8 @@ export function HotelList() {
         lon: hotel.lon,
         label: hotel.name,
         score: hotel.score,
+        distanceMeters: hotel.distanceMeters,
+        cuisine: hotel.stars ? `${hotel.stars} étoile${hotel.stars > 1 ? 's' : ''}` : 'Hébergement',
         selected: selectedPlaceId === hotel.place_id,
       })),
     [selectedPlaceId, visibleHotels],
@@ -158,14 +160,12 @@ export function HotelList() {
         </button>
       </section>
 
-      {mapPins.length > 0 ? (
-        <VectorMap
-          center={center}
-          pins={mapPins}
-          onSelect={setSelectedPlaceId}
-          className="h-64 overflow-hidden rounded-xl"
-        />
-      ) : null}
+      <VectorMap
+        center={center}
+        pins={mapPins}
+        onSelect={setSelectedPlaceId}
+        className="h-96 overflow-hidden rounded-xl shadow-md"
+      />
 
       <section className="space-y-4" aria-label="Liste des hôtels">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -80,7 +80,7 @@ export function RestaurantList() {
 
   const visibleRestaurants = useMemo(() => {
     const filtered = restaurants.filter((restaurant) => restaurant.score >= minScore);
-    return filtered.toSorted((a, b) => {
+    return [...filtered].sort((a, b) => {
       if (sortKey === 'distance') return a.distanceMeters - b.distanceMeters;
       if (sortKey === 'name') return a.name.localeCompare(b.name, 'fr');
       return b.score - a.score || a.distanceMeters - b.distanceMeters;
@@ -95,6 +95,8 @@ export function RestaurantList() {
         lon: restaurant.lon,
         label: restaurant.name,
         score: restaurant.score,
+        distanceMeters: restaurant.distanceMeters,
+        cuisine: restaurant.cuisine[0],
         selected: selectedPlaceId === restaurant.place_id,
       })),
     [selectedPlaceId, visibleRestaurants],
@@ -226,14 +228,12 @@ export function RestaurantList() {
         </p>
       ) : null}
 
-      {mapPins.length > 0 ? (
-        <VectorMap
-          center={center}
-          pins={mapPins}
-          onSelect={setSelectedPlaceId}
-          className="h-64 overflow-hidden rounded-xl"
-        />
-      ) : null}
+      <VectorMap
+        center={center}
+        pins={mapPins}
+        onSelect={setSelectedPlaceId}
+        className="h-96 overflow-hidden rounded-xl shadow-md"
+      />
 
       <section className="space-y-4" aria-label="Liste des restaurants">
         <div className="flex flex-wrap items-center justify-between gap-3">
