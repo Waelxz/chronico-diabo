@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { DiaboProvider } from '@/components/diabo/DiaboProvider';
 import { DiaboStage } from '@/components/diabo/DiaboStage';
 import { useDiaboLook } from '@/hooks/useDiaboLook';
 
@@ -14,9 +13,7 @@ export function DiaboPeek() {
   }, []);
 
   return (
-    <DiaboProvider>
-      <DiaboPeekInner visible={visible} />
-    </DiaboProvider>
+    <DiaboPeekInner visible={visible} />
   );
 }
 

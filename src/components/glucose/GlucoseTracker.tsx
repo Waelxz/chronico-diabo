@@ -155,6 +155,40 @@ export function GlucoseTracker() {
     const since = referenceTime - 7 * 24 * 60 * 60 * 1000;
     return logs.filter((log) => new Date(log.measuredAt).getTime() >= since);
   }, [logs, referenceTime]);
+  const weeklyMetrics = useMemo(() => {
+    const latestLog = logs[0];
+    const weeklyMgdlValues = weeklyLogs.map((log) =>
+      convertValue(log.value, log.unit, 'mg/dL'),
+    );
+    const weeklyAvgMgdl =
+      weeklyMgdlValues.length > 0
+        ? Math.round(
+            weeklyMgdlValues.reduce((sum, current) => sum + current, 0) /
+              weeklyMgdlValues.length,
+          )
+        : null;
+    const inRangeCount = weeklyMgdlValues.filter(
+      (current) => current >= 70 && current <= 140,
+    ).length;
+    const lowCount = weeklyMgdlValues.filter((current) => current < 70).length;
+    const highCount = weeklyMgdlValues.filter((current) => current > 140).length;
+
+    return {
+      latestMgdl: latestLog
+        ? convertValue(latestLog.value, latestLog.unit, 'mg/dL')
+        : null,
+      latestValue: latestLog
+        ? convertValue(latestLog.value, latestLog.unit, unit)
+        : null,
+      weeklyAvgMgdl,
+      timeInRangePct:
+        weeklyMgdlValues.length > 0
+          ? Math.round((inRangeCount / weeklyMgdlValues.length) * 100)
+          : null,
+      lowCount,
+      highCount,
+    };
+  }, [logs, unit, weeklyLogs]);
 
   const target = unit === 'mg/dL' ? { low: 70, high: 140 } : { low: 3.9, high: 7.8 };
   const maxChartValue = Math.max(
@@ -426,6 +460,63 @@ export function GlucoseTracker() {
           </p>
         ) : null}
 
+        <section aria-label="Indicateurs glycemie">
+          {loading ? (
+            <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((index) => (
+                <div
+                  key={index}
+                  className="diabo-skeleton h-20"
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <MetricCard
+                  label="Derniere mesure"
+                  value={
+                    weeklyMetrics.latestValue == null
+                      ? 'Aucune'
+                      : `${formatValue(weeklyMetrics.latestValue, unit)} ${unit}`
+                  }
+                  className={metricRangeClass(weeklyMetrics.latestMgdl)}
+                />
+                <MetricCard
+                  label="Moyenne 7j"
+                  value={
+                    weeklyMetrics.weeklyAvgMgdl == null
+                      ? 'Aucune'
+                      : `${weeklyMetrics.weeklyAvgMgdl} mg/dL`
+                  }
+                  className={metricRangeClass(weeklyMetrics.weeklyAvgMgdl)}
+                />
+                <MetricCard
+                  label="Temps cible"
+                  value={
+                    weeklyMetrics.timeInRangePct == null
+                      ? 'Aucun'
+                      : `${weeklyMetrics.timeInRangePct}%`
+                  }
+                  className={metricTimeClass(weeklyMetrics.timeInRangePct)}
+                />
+                <MetricCard
+                  label="Hors cible"
+                  value={`${weeklyMetrics.lowCount + weeklyMetrics.highCount}`}
+                  className={metricOutOfRangeClass(
+                    weeklyMetrics.lowCount + weeklyMetrics.highCount,
+                  )}
+                />
+              </div>
+              <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+                Cible indicative 70-140 mg/dL, a personnaliser avec votre
+                soignant.
+              </p>
+            </>
+          )}
+        </section>
+
         <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -562,6 +653,25 @@ function ChartState({ text }: { text: string }) {
   );
 }
 
+function MetricCard({
+  className,
+  label,
+  value,
+}: {
+  className: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <article className="diabo-surface p-4">
+      <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        {label}
+      </p>
+      <p className={`mt-2 text-2xl font-bold ${className}`}>{value}</p>
+    </article>
+  );
+}
+
 function LogCard({
   log,
   deleting,
@@ -695,4 +805,24 @@ function rangeBadgeClass(log: ApiGlucoseLog): string {
     return 'bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-200';
   }
   return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200';
+}
+
+function metricRangeClass(value: number | null): string {
+  if (value == null) return 'text-zinc-500 dark:text-zinc-400';
+  if (value < 70 || value > 180) return 'text-red-600 dark:text-red-400';
+  if (value > 140) return 'text-amber-600 dark:text-amber-400';
+  return 'text-emerald-600 dark:text-emerald-400';
+}
+
+function metricTimeClass(value: number | null): string {
+  if (value == null) return 'text-zinc-500 dark:text-zinc-400';
+  if (value >= 70) return 'text-emerald-600 dark:text-emerald-400';
+  if (value >= 50) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
+}
+
+function metricOutOfRangeClass(value: number): string {
+  if (value === 0) return 'text-emerald-600 dark:text-emerald-400';
+  if (value <= 2) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
 }

@@ -123,6 +123,14 @@ export function OnboardingForm() {
       if (!response.ok || !data.profile) {
         throw new Error(data.error ?? 'Enregistrement impossible');
       }
+      window.localStorage.setItem(
+        'diabo_profile',
+        JSON.stringify({
+          name: name.trim(),
+          diabetesType: mapType(diabetesType),
+          goal: mapGoal(goals.join(' ')),
+        }),
+      );
       setSaved(true);
     } catch (err) {
       setError(
@@ -401,4 +409,35 @@ function CheckboxGroup({
       </div>
     </fieldset>
   );
+}
+
+function mapType(value: string | undefined): 't1' | 't2' | 'pre' | 'unknown' {
+  if (value === '1') return 't1';
+  if (value === '2') return 't2';
+  if (value === 'pre' || value === 'prediabetes') return 'pre';
+  return 'unknown';
+}
+
+function mapGoal(
+  challengeText: string,
+): 'glucose' | 'restaurants' | 'travel' | 'emotional' {
+  const normalized = challengeText.toLowerCase();
+  if (
+    normalized.includes('restaurant') ||
+    normalized.includes('manger') ||
+    normalized.includes('aliment')
+  ) {
+    return 'restaurants';
+  }
+  if (normalized.includes('voyage') || normalized.includes('hotel')) {
+    return 'travel';
+  }
+  if (
+    normalized.includes('emotion') ||
+    normalized.includes('stress') ||
+    normalized.includes('soutien')
+  ) {
+    return 'emotional';
+  }
+  return 'glucose';
 }

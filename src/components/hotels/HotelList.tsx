@@ -103,6 +103,13 @@ export function HotelList() {
     );
   }
 
+  function expandRadius() {
+    setRadius(5000);
+    if (radius === 5000) {
+      void loadHotels();
+    }
+  }
+
   return (
     <div className="space-y-5">
       <section
@@ -195,12 +202,27 @@ export function HotelList() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-            Recherche des hébergements autour de vous...
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((index) => (
+              <div
+                key={index}
+                className="diabo-skeleton h-24 rounded-xl"
+                aria-hidden="true"
+              />
+            ))}
           </div>
         ) : visibleHotels.length === 0 ? (
-          <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-            Aucun hôtel trouvé dans cette zone.
+          <div className="diabo-surface flex flex-col items-center gap-3 px-4 py-8 text-center">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Aucun hotel trouve
+            </p>
+            <button
+              type="button"
+              onClick={expandRadius}
+              className="diabo-button-secondary"
+            >
+              Elargir le rayon
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

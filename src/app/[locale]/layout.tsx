@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { DiaboProvider } from '@/components/diabo/DiaboProvider';
 import { DiaboPeekPortal } from '@/components/diabo/DiaboPeekPortal';
 import { Sidebar } from '@/components/nav/Sidebar';
 import { routing } from '@/i18n/routing';
@@ -64,14 +65,16 @@ export default async function LocaleLayout({
     >
       <body className="flex h-full bg-zinc-950 font-sans">
         <NextIntlClientProvider messages={messages}>
-          <Sidebar session={session} />
-          <DiaboPeekPortal />
-          <main
-            data-sidebar-main
-            className="flex min-h-full flex-1 flex-col transition-[margin] duration-300 ease-in-out lg:ml-[4.5rem]"
-          >
-            <div className="transition-opacity duration-200">{children}</div>
-          </main>
+          <DiaboProvider>
+            <Sidebar session={session} />
+            <DiaboPeekPortal />
+            <main
+              data-sidebar-main
+              className="flex min-h-full flex-1 flex-col transition-[margin] duration-300 ease-in-out lg:ml-[4.5rem]"
+            >
+              <div className="transition-opacity duration-200">{children}</div>
+            </main>
+          </DiaboProvider>
         </NextIntlClientProvider>
       </body>
     </html>

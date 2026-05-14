@@ -12,12 +12,14 @@ import {
   LogIn,
   LogOut,
   Menu,
+  Search,
   User,
   UtensilsCrossed,
   X,
   type LucideProps,
 } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { CommandPalette } from '@/components/nav/CommandPalette';
 import { Link, usePathname } from '@/i18n/navigation';
 import { signInWithGoogle, signOutCurrentUser } from '@/lib/auth-actions';
 
@@ -94,10 +96,23 @@ export function Sidebar({ session }: SidebarProps) {
     getServerSidebarExpanded,
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     setRootSidebarWidth(expanded);
   }, [expanded]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -188,6 +203,16 @@ export function Sidebar({ session }: SidebarProps) {
         </nav>
 
         <div className="space-y-3 border-t border-zinc-800 p-3">
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="hidden h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 lg:inline-flex"
+            title={compact ? 'Recherche' : undefined}
+          >
+            <Search className="size-4" aria-hidden />
+            <span className={compact ? 'sr-only' : ''}>Recherche</span>
+          </button>
+
           <LanguageSwitcher
             compact={compact}
             className={`w-full border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-emerald-500 hover:text-emerald-300 ${
@@ -226,6 +251,7 @@ export function Sidebar({ session }: SidebarProps) {
           </button>
         </div>
       </aside>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </>
   );
 }

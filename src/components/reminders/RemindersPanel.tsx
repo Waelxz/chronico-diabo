@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { signIn } from 'next-auth/react';
+import { Info } from 'lucide-react';
 
 type ReminderType =
   | 'medication'
@@ -30,6 +31,16 @@ const TYPE_LABELS: Record<ReminderType, string> = {
   hydration: 'Hydratation',
   custom: 'Autre',
 };
+
+const QUICK_REMINDERS: Array<{
+  label: string;
+  time: string;
+  type: ReminderType;
+}> = [
+  { label: 'Medicament', time: '08:00', type: 'medication' },
+  { label: 'Glycemie', time: '07:30', type: 'glucose' },
+  { label: 'Hydratation', time: '12:00', type: 'hydration' },
+];
 
 export function RemindersPanel() {
   const [session, setSession] = useState<SessionResponse>(null);
@@ -222,6 +233,12 @@ export function RemindersPanel() {
     }
   }
 
+  function applyQuickReminder(reminder: (typeof QUICK_REMINDERS)[number]) {
+    setLabel(reminder.label);
+    setTime(reminder.time);
+    setType(reminder.type);
+  }
+
   if (checkingSession) {
     return <PanelState text="Vérification de la session..." />;
   }
@@ -268,6 +285,14 @@ export function RemindersPanel() {
           >
             {pushLoading ? 'Activation...' : 'Activer les notifications'}
           </button>
+        </div>
+
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p>
+            Les notifications navigateur sont enregistrees localement. Un
+            serveur de planification est necessaire pour l envoi automatique.
+          </p>
         </div>
 
         {error ? (
@@ -338,6 +363,18 @@ export function RemindersPanel() {
         <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
           Ajouter un rappel
         </h2>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_REMINDERS.map((reminder) => (
+            <button
+              key={`${reminder.label}-${reminder.time}`}
+              type="button"
+              onClick={() => applyQuickReminder(reminder)}
+              className="rounded-full border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+            >
+              {reminder.label} {reminder.time}
+            </button>
+          ))}
+        </div>
         <div className="space-y-2">
           <label htmlFor="reminder-label" className="text-sm font-medium">
             Libellé
@@ -403,13 +440,13 @@ function PanelState({ text }: { text: string }) {
 
 function timeToCron(value: string): string {
   const [hour = '8', minute = '0'] = value.split(':');
-  return `0 ${Number(hour)} ${Number(minute)} * * *`;
+  return `${Number(minute)} ${Number(hour)} * * *`;
 }
 
 function cronToTime(value: string): string {
   const parts = value.split(' ');
+  const minute = parts[0]?.padStart(2, '0') ?? '00';
   const hour = parts[1]?.padStart(2, '0') ?? '08';
-  const minute = parts[2]?.padStart(2, '0') ?? '00';
   return `${hour}:${minute}`;
 }
 

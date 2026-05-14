@@ -61,6 +61,22 @@ function extractText(message: UIMessage | undefined): string {
     .trim();
 }
 
+function detectEmergencyIntent(text: string): boolean {
+  const normalized = text.toLowerCase();
+  return [
+    'perte de conscience',
+    'convulsion',
+    'douleur thoracique',
+    'du mal a respirer',
+    'acidocetose',
+    'coma',
+    'malaise severe',
+    'urgence medicale',
+    'appeler le 15',
+    'appeler le 190',
+  ].some((keyword) => normalized.includes(keyword));
+}
+
 export async function POST(req: Request) {
   let body: ChatRequestBody;
   try {
@@ -100,6 +116,7 @@ export async function POST(req: Request) {
   // Persist the latest user turn (fire-and-forget).
   const latest = messages[messages.length - 1];
   const userText = latest?.role === 'user' ? extractText(latest) : '';
+  const emergencyIntent = detectEmergencyIntent(userText);
   void touchChat(chatId, userId).catch((err) =>
     console.error('[chat] touchChat failed:', err),
   );
@@ -158,6 +175,10 @@ export async function POST(req: Request) {
     if (memoryBlock) {
       augmentedSystem = `${memoryBlock}\n\n${augmentedSystem}`;
     }
+  }
+
+  if (emergencyIntent) {
+    augmentedSystem = `## SAFETY_OVERRIDE\nCommence ta reponse par une escalation d'urgence claire en francais: recommande d'appeler les urgences locales ou un medecin immediatement. Dis que Diabo ne remplace pas un avis medical. Reste bref.\n\n${augmentedSystem}`;
   }
 
   // Surface KB chunks as message-level citations: streamed to the client

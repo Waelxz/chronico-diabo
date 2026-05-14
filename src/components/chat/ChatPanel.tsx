@@ -232,16 +232,49 @@ export function ChatPanel({
 export function ChatMessages({ className }: { className?: string }) {
   const { messages, status, error, hydrating } = useChatContext();
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const previousStatusRef = useRef<ChatStatus>(status);
 
   useEffect(() => {
-    sentinelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const reducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    const becameIdle =
+      previousStatusRef.current !== 'ready' && status === 'ready';
+    const behavior: ScrollBehavior =
+      reducedMotion || !becameIdle ? 'instant' : 'smooth';
+
+    sentinelRef.current?.scrollIntoView({ behavior, block: 'end' });
+    previousStatusRef.current = status;
   }, [messages, status]);
+
+  const lastUserText = useMemo(() => {
+    const latestUserMessage = messages.findLast(
+      (message) => message.role === 'user',
+    );
+    return latestUserMessage
+      ? latestUserMessage.parts
+          .filter(
+            (part): part is { type: 'text'; text: string } =>
+              part.type === 'text',
+          )
+          .map((part) => part.text)
+          .join('\n')
+      : '';
+  }, [messages]);
+
+  const showSafetyBanner = containsSafetyKeyword(lastUserText);
 
   return (
     <div
       className={`flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 pt-4 text-base ${className ?? ''}`}
       aria-live="polite"
     >
+      {showSafetyBanner ? (
+        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          Si c est urgent ou severe, contacte les urgences locales ou ton
+          medecin. Diabo ne remplace pas un avis medical.
+        </div>
+      ) : null}
       {messages.length === 0 ? (
         hydrating ? (
           <HydratingState />
@@ -280,20 +313,44 @@ export function ChatMessages({ className }: { className?: string }) {
 export function ChatInputBar({ className }: { className?: string }) {
   const { handleSubmit, hydrating, input, isBusy, setInput, status, stop } =
     useChatContext();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const resizeTextarea = useCallback((element: HTMLTextAreaElement) => {
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      resizeTextarea(textareaRef.current);
+    }
+  }, [input, resizeTextarea]);
 
   return (
     <form
       onSubmit={handleSubmit}
       className={`flex w-full items-center gap-2 border-t border-zinc-200/80 bg-white/90 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950/90 ${className ?? ''}`}
     >
-      <input
-        type="text"
+      <textarea
+        ref={textareaRef}
         aria-label="Ecrire un message a Diabo"
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        onChange={(e) => {
+          setInput(e.target.value);
+          resizeTextarea(e.target);
+        }}
+        onKeyDown={(event) => {
+          const isMobile =
+            typeof navigator !== 'undefined' && navigator.maxTouchPoints >= 2;
+          if (event.key === 'Enter' && !event.shiftKey && !isMobile) {
+            event.preventDefault();
+            event.currentTarget.form?.requestSubmit();
+          }
+        }}
         placeholder={hydrating ? 'Chargement de la conversation...' : 'Écris quelque chose...'}
         disabled={status === 'error' || hydrating}
-        className="min-w-0 flex-1 rounded-full border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-400 transition-transform duration-150 focus:scale-[1.01] focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        rows={1}
+        className="max-h-[7rem] min-h-11 min-w-0 flex-1 resize-none overflow-y-auto rounded-3xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-400 transition-transform duration-150 focus:scale-[1.01] focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
         autoComplete="off"
       />
       {isBusy ? (
@@ -500,6 +557,14 @@ function renderInline(text: string): ReactNode[] {
 }
 
 function EmptyState() {
+  const { setInput } = useChatContext();
+  const prompts = [
+    'Que manger ce soir ?',
+    'J ai une hypo, que faire ?',
+    'Trouve un restaurant a Tunis',
+    'Resumez ma semaine glycemie',
+  ];
+
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-10 text-center text-zinc-500 dark:text-zinc-400">
       <p className="text-sm">
@@ -513,6 +578,18 @@ function EmptyState() {
         Pose-moi une question, partage ce que tu ressens, ou demande-moi un
         conseil pour vivre avec le diabète.
       </p>
+      <div className="mt-3 flex max-w-md flex-wrap justify-center gap-2">
+        {prompts.map((prompt) => (
+          <button
+            key={prompt}
+            type="button"
+            onClick={() => setInput(prompt)}
+            className="rounded-full border border-emerald-200 px-3 py-1.5 text-sm text-emerald-700 transition-all hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -541,6 +618,19 @@ function TypingDots() {
       <span className="size-1.5 animate-bounce rounded-full bg-emerald-500" />
     </span>
   );
+}
+
+function containsSafetyKeyword(text: string): boolean {
+  const normalized = text.toLowerCase();
+  return [
+    'perte de conscience',
+    'douleur thoracique',
+    'vomissement',
+    'respiration rapide',
+    'acidocetose',
+    'hypoglycemie severe',
+    'malaise severe',
+  ].some((keyword) => normalized.includes(keyword));
 }
 
 
