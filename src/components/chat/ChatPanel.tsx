@@ -53,7 +53,7 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [hydrating, setHydrating] = useState(true);
   const { setIsThinking, setIsTalking, applyEmotion } = useDiabo();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -127,9 +127,7 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
 
   // Auto-scroll to the latest message.
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, status]);
 
   const isBusy = status === 'submitted' || status === 'streaming';
@@ -185,19 +183,22 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
         ) : null}
       </header>
 
-      <div
-        ref={scrollRef}
-        className="flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm"
-      >
+      <div className="flex flex-1 flex-col justify-end gap-3 overflow-y-auto px-5 py-4 text-sm">
         {messages.length === 0 ? (
           hydrating ? <HydratingState /> : <EmptyState />
         ) : (
-          messages.map((m) => {
+          messages.map((m, index) => {
             const meta = (m as { metadata?: DiaboMessageMetadata }).metadata;
             const citations =
               m.role === 'assistant' ? meta?.kbCitations : undefined;
+            const age = messages.length - 1 - index;
             return (
-              <div key={m.id} className="space-y-1">
+              <div
+                key={m.id}
+                className={`space-y-1 transition-opacity duration-500 ${messageOpacityClass(
+                  age,
+                )}`}
+              >
                 <Bubble role={m.role}>
                   {m.parts
                     .filter((p) => p.type === 'text')
@@ -224,6 +225,7 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
             Oups — Diabo n&apos;a pas pu répondre : {error.message}
           </p>
         ) : null}
+        <div ref={bottomRef} aria-hidden />
       </div>
 
       <form
@@ -259,6 +261,12 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
       </form>
     </section>
   );
+}
+
+function messageOpacityClass(ageFromLatest: number): string {
+  if (ageFromLatest < 3) return 'opacity-100';
+  if (ageFromLatest < 6) return 'opacity-60';
+  return 'opacity-30';
 }
 
 function EmptyState() {

@@ -31,6 +31,9 @@ yarn-error.log*
 .pnpm-debug.log*
 dev-server.log
 build.log
+.npm-cache/
+tsc-check.txt
+tsc-out.txt
 
 # screenshots from local browser smoke-tests
 sprint*-*.png

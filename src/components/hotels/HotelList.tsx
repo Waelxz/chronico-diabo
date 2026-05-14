@@ -43,7 +43,7 @@ export function HotelList() {
       setWarning(data.warning ?? null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Impossible de charger les hôtels",
+        err instanceof Error ? err.message : 'Impossible de charger les hôtels',
       );
       setHotels([]);
     } finally {
@@ -82,9 +82,12 @@ export function HotelList() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-      <aside className="space-y-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="space-y-2">
+    <div className="space-y-5">
+      <section
+        className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+        aria-label="Filtres hôtels"
+      >
+        <div className="min-w-40 space-y-2">
           <label
             htmlFor="hotel-distance"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
@@ -104,7 +107,7 @@ export function HotelList() {
           </select>
         </div>
 
-        <div className="space-y-2">
+        <div className="min-w-44 flex-1 space-y-2">
           <label
             htmlFor="hotel-score"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
@@ -122,18 +125,18 @@ export function HotelList() {
             className="w-full accent-emerald-600"
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Minimum {minScore}/100
+            Minimum {formatScore(minScore)}
           </p>
         </div>
 
         <button
           type="button"
           onClick={useCurrentLocation}
-          className="w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
         >
           Utiliser ma position
         </button>
-      </aside>
+      </section>
 
       <section className="space-y-4" aria-label="Liste des hôtels">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -171,7 +174,7 @@ export function HotelList() {
             Aucun hôtel trouvé dans cette zone.
           </div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visibleHotels.map((hotel) => (
               <HotelCard key={hotel.place_id} hotel={hotel} />
             ))}
@@ -183,47 +186,61 @@ export function HotelList() {
 }
 
 function HotelCard({ hotel }: { hotel: RankedHotel }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">
             {hotel.name}
           </h3>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {hotel.stars
-              ? `${'⭐'.repeat(hotel.stars)} · ${hotel.stars} étoiles`
-              : 'Étoiles non renseignées'}
-          </p>
+          <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            {hotelTypeLabel(hotel)}
+          </span>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${scoreBadgeClass(
-            hotel.score,
-          )}`}
-        >
-          {hotel.score}/100
-        </span>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <span
-          className={`rounded-full px-2.5 py-1 font-medium ${accessibilityBadgeClass(
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${accessibilityBadgeClass(
             hotel.accessibility,
           )}`}
         >
           {accessibilityLabel(hotel.accessibility)}
         </span>
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-          {formatDistance(hotel.distanceMeters)}
-        </span>
       </div>
 
-      <p className="mt-3 line-clamp-3 text-sm text-zinc-600 dark:text-zinc-300">
+      <div className="mt-4 space-y-2">
+        <div className="flex items-center justify-between text-xs font-medium">
+          <span className="text-zinc-500 dark:text-zinc-400">
+            Score diabète
+          </span>
+          <span className="text-zinc-900 dark:text-zinc-100">
+            {formatScore(hotel.score)}
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+          <div
+            className={`h-full rounded-full ${scoreBarClass(hotel.score)}`}
+            style={{ width: `${hotel.score}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
+        {formatDistance(hotel.distanceMeters)}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        className={`mt-3 text-left text-sm leading-6 text-zinc-600 dark:text-zinc-300 ${
+          expanded ? '' : 'line-clamp-2'
+        }`}
+      >
         {hotel.rationale}
-      </p>
+      </button>
 
       {hotel.address ? (
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-3 truncate text-xs text-zinc-500 dark:text-zinc-400">
           {hotel.address}
         </p>
       ) : null}
@@ -231,10 +248,15 @@ function HotelCard({ hotel }: { hotel: RankedHotel }) {
   );
 }
 
+function hotelTypeLabel(hotel: RankedHotel): string {
+  if (hotel.stars) return `${hotel.stars} étoile${hotel.stars > 1 ? 's' : ''}`;
+  return 'Hébergement';
+}
+
 function accessibilityLabel(accessibility: RankedHotel['accessibility']): string {
-  if (accessibility === 'good') return 'Accessibilité favorable';
-  if (accessibility === 'moderate') return 'Accessibilité à vérifier';
-  return 'Accessibilité inconnue';
+  if (accessibility === 'good') return 'Accès favorable';
+  if (accessibility === 'moderate') return 'À vérifier';
+  return 'Accès inconnu';
 }
 
 function accessibilityBadgeClass(
@@ -249,10 +271,14 @@ function accessibilityBadgeClass(
   return 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200';
 }
 
-function scoreBadgeClass(score: number): string {
-  if (score >= 70) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
-  if (score >= 50) return 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200';
-  return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200';
+function scoreBarClass(score: number): string {
+  if (score < 40) return 'bg-red-500';
+  if (score <= 60) return 'bg-amber-500';
+  return 'bg-emerald-500';
+}
+
+function formatScore(score: number): string {
+  return `${(score / 10).toFixed(1).replace('.', ',')}/10`;
 }
 
 function formatDistance(meters: number): string {

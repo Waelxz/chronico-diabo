@@ -1,10 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RestaurantMap } from '@/components/restaurants/RestaurantMap';
 import {
   carbTierLabel,
-  scoreLabel,
+  type CarbLoadTier,
   type RankedRestaurant,
   type RestaurantsApiResponse,
 } from '@/lib/restaurants/types';
@@ -20,7 +19,6 @@ export function RestaurantList() {
   const [minScore, setMinScore] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>('score');
   const [restaurants, setRestaurants] = useState<RankedRestaurant[]>([]);
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +44,6 @@ export function RestaurantList() {
       }
       setRestaurants(data.restaurants);
       setWarning(data.warning ?? null);
-      setSelectedPlaceId(data.restaurants[0]?.place_id ?? null);
     } catch (err) {
       setError(
         err instanceof Error
@@ -101,9 +98,12 @@ export function RestaurantList() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-      <aside className="space-y-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="space-y-2">
+    <div className="space-y-5">
+      <section
+        className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+        aria-label="Filtres restaurants"
+      >
+        <div className="min-w-44 flex-1 space-y-2">
           <label
             htmlFor="cuisine"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
@@ -125,7 +125,7 @@ export function RestaurantList() {
           </datalist>
         </div>
 
-        <div className="space-y-2">
+        <div className="min-w-36 space-y-2">
           <label
             htmlFor="distance"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
@@ -145,12 +145,12 @@ export function RestaurantList() {
           </select>
         </div>
 
-        <div className="space-y-2">
+        <div className="min-w-44 space-y-2">
           <label
             htmlFor="score"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
           >
-            Score
+            Score minimum
           </label>
           <input
             id="score"
@@ -163,11 +163,11 @@ export function RestaurantList() {
             className="w-full accent-emerald-600"
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Minimum {minScore}/100
+            Minimum {formatScore(minScore)}
           </p>
         </div>
 
-        <div className="space-y-2">
+        <div className="min-w-36 space-y-2">
           <label
             htmlFor="sort"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
@@ -189,138 +189,137 @@ export function RestaurantList() {
         <button
           type="button"
           onClick={useCurrentLocation}
-          className="w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
         >
           Utiliser ma position
         </button>
-      </aside>
+      </section>
 
-      <div className="space-y-4">
-        <RestaurantMap
-          restaurants={visibleRestaurants}
-          center={center}
-          selectedPlaceId={selectedPlaceId}
-          onSelect={setSelectedPlaceId}
-        />
+      {warning ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+          {warning}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+          {error}
+        </p>
+      ) : null}
 
-        {warning ? (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-            {warning}
-          </p>
-        ) : null}
-        {error ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
-            {error}
-          </p>
-        ) : null}
+      <section className="space-y-4" aria-label="Liste des restaurants">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            Restaurants classés
+          </h2>
+          <button
+            type="button"
+            onClick={() => void loadRestaurants()}
+            disabled={loading}
+            className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+          >
+            {loading ? 'Chargement...' : 'Actualiser'}
+          </button>
+        </div>
 
-        <section className="space-y-3" aria-label="Liste des restaurants">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Restaurants classés
-            </h2>
-            <button
-              type="button"
-              onClick={() => void loadRestaurants()}
-              disabled={loading}
-              className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
-            >
-              {loading ? 'Chargement…' : 'Actualiser'}
-            </button>
+        {loading ? (
+          <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+            Recherche des restaurants autour de vous...
           </div>
-
-          {loading ? (
-            <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-              Recherche des restaurants autour de vous…
-            </div>
-          ) : visibleRestaurants.length === 0 ? (
-            <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-              Aucun restaurant trouvé dans cette zone
-            </div>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {visibleRestaurants.map((restaurant) => (
-                <RestaurantCard
-                  key={restaurant.place_id}
-                  restaurant={restaurant}
-                  selected={restaurant.place_id === selectedPlaceId}
-                  onSelect={() => setSelectedPlaceId(restaurant.place_id)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+        ) : visibleRestaurants.length === 0 ? (
+          <div className="rounded-lg border border-zinc-200 bg-white px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+            Aucun restaurant trouvé dans cette zone
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleRestaurants.map((restaurant) => (
+              <RestaurantCard
+                key={restaurant.place_id}
+                restaurant={restaurant}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
-function RestaurantCard({
-  restaurant,
-  selected,
-  onSelect,
-}: {
-  restaurant: RankedRestaurant;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+function RestaurantCard({ restaurant }: { restaurant: RankedRestaurant }) {
+  const [expanded, setExpanded] = useState(false);
+  const cuisineLabel = restaurant.cuisine[0] ?? 'Cuisine non renseignée';
+
   return (
-    <article
-      className={`rounded-lg border bg-white p-4 shadow-sm transition dark:bg-zinc-950 ${
-        selected
-          ? 'border-emerald-500 ring-2 ring-emerald-100 dark:ring-emerald-950'
-          : 'border-zinc-200 dark:border-zinc-800'
-      }`}
-    >
+    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">
             {restaurant.name}
           </h3>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {restaurant.cuisine.length > 0
-              ? restaurant.cuisine.join(', ')
-              : 'Cuisine non renseignée'}
-          </p>
+          <span className="mt-2 inline-flex max-w-full rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            <span className="truncate">{cuisineLabel}</span>
+          </span>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass(
-            restaurant.score,
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${carbBadgeClass(
+            restaurant.carb_load_tier,
           )}`}
         >
-          {restaurant.score}/100
-        </span>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-          {scoreLabel(restaurant.score)}
-        </span>
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
           {carbTierLabel(restaurant.carb_load_tier)}
         </span>
-        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-          {formatDistance(restaurant.distanceMeters)}
-        </span>
       </div>
-      <p className="mt-3 line-clamp-3 text-sm text-zinc-600 dark:text-zinc-300">
-        {restaurant.rationale}
-      </p>
+
+      <div className="mt-4 space-y-2">
+        <div className="flex items-center justify-between text-xs font-medium">
+          <span className="text-zinc-500 dark:text-zinc-400">
+            Score diabète
+          </span>
+          <span className="text-zinc-900 dark:text-zinc-100">
+            {formatScore(restaurant.score)}
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+          <div
+            className={`h-full rounded-full ${scoreBarClass(restaurant.score)}`}
+            style={{ width: `${restaurant.score}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
+        {formatDistance(restaurant.distanceMeters)}
+      </div>
+
       <button
         type="button"
-        onClick={onSelect}
-        className="mt-4 rounded-md border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+        onClick={() => setExpanded((value) => !value)}
+        className={`mt-3 text-left text-sm leading-6 text-zinc-600 dark:text-zinc-300 ${
+          expanded ? '' : 'line-clamp-2'
+        }`}
       >
-        Voir sur la carte
+        {restaurant.rationale}
       </button>
     </article>
   );
 }
 
-function badgeClass(score: number): string {
-  if (score >= 80) return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
-  if (score >= 60) return 'bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-200';
-  if (score >= 40) return 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200';
+function scoreBarClass(score: number): string {
+  if (score < 40) return 'bg-red-500';
+  if (score <= 60) return 'bg-amber-500';
+  return 'bg-emerald-500';
+}
+
+function carbBadgeClass(tier: CarbLoadTier): string {
+  if (tier === 'low') {
+    return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
+  }
+  if (tier === 'medium') {
+    return 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200';
+  }
   return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200';
+}
+
+function formatScore(score: number): string {
+  return `${(score / 10).toFixed(1).replace('.', ',')}/10`;
 }
 
 function formatDistance(meters: number): string {
