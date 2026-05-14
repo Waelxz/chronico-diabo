@@ -15,10 +15,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { ArrowUp, Square } from 'lucide-react';
 import { useDiabo } from '@/components/diabo/DiaboProvider';
-import type {
-  DiaboMessageMetadata,
-  KbCitation,
-} from '@/lib/diabo/citations';
+import type { DiaboMessageMetadata } from '@/lib/diabo/citations';
 
 type ChatPanelProps = {
   children?: ReactNode;
@@ -252,9 +249,6 @@ export function ChatMessages({ className }: { className?: string }) {
         )
       ) : (
         messages.map((m) => {
-          const meta = (m as { metadata?: DiaboMessageMetadata }).metadata;
-          const citations =
-            m.role === 'assistant' ? meta?.kbCitations : undefined;
           return (
             <MessageRow
               key={m.id}
@@ -263,7 +257,6 @@ export function ChatMessages({ className }: { className?: string }) {
                 .filter((p) => p.type === 'text')
                 .map((p) => (p as { type: 'text'; text: string }).text)
                 .join('\n')}
-              citations={citations}
             />
           );
         })
@@ -350,11 +343,9 @@ function ChatHeader() {
 }
 
 function MessageRow({
-  citations,
   role,
   text,
 }: {
-  citations?: KbCitation[];
   role: ChatMessage['role'];
   text: string;
 }) {
@@ -371,7 +362,6 @@ function MessageRow({
   return (
     <div className="space-y-2">
       <AssistantRow>{renderMarkdownLite(text)}</AssistantRow>
-      {citations && citations.length > 0 ? <Citations items={citations} /> : null}
     </div>
   );
 }
@@ -547,27 +537,6 @@ function TypingDots() {
   );
 }
 
-function Citations({ items }: { items: KbCitation[] }) {
-  return (
-    <div
-      className="flex flex-wrap items-center gap-1.5 pl-5 pt-0.5"
-      aria-label="Sources consultées par Diabo"
-    >
-      <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/80">
-        Diabo a consulté ·
-      </span>
-      {items.map((c) => (
-        <span
-          key={c.title}
-          title={`Pertinence : ${(c.score * 100).toFixed(0)} %`}
-          className="inline-flex items-center rounded-full border border-emerald-200/70 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/50 dark:text-emerald-200"
-        >
-          {c.title}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 function useChatContext() {
   const ctx = useContext(ChatContext);

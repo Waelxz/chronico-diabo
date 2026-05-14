@@ -118,16 +118,29 @@ export async function POST(req: Request) {
     return new Response('Failed to parse messages', { status: 400 });
   }
 
-  // Retrieval-augmented context (sprint 3). Best-effort: KB outage just
-  // falls back to the persona-only prompt — chat never breaks on RAG failure.
-  let retrievedChunks: KbChunkResult[] = [];
-  if (userText) {
-    try {
-      retrievedChunks = await searchKb(userText, 3);
-    } catch (err) {
-      console.warn('[chat] searchKb failed, continuing without RAG:', err);
-    }
-  }
+  // Parallelise all pre-LLM async work so they don't block each other.
+  // RAG is skipped for very short / greeting messages to save embedding latency.
+  const shouldRag = userText.length >= 10;
+  const [retrievedChunksRaw, onboardingProfile, profile] = await Promise.all([
+    shouldRag
+      ? searchKb(userText, 2).catch((err) => {
+          console.warn('[chat] searchKb failed, continuing without RAG:', err);
+          return [] as KbChunkResult[];
+        })
+      : Promise.resolve([] as KbChunkResult[]),
+    getOnboardingProfile(req, userId, anonId).catch((err) => {
+      console.warn('[chat] getOnboardingProfile failed, continuing:', err);
+      return null;
+    }),
+    getProfile(chatId).catch((err) => {
+      console.warn('[chat] getProfile failed, continuing without memory:', err);
+      return null;
+    }),
+  ]);
+
+  // Only inject KB chunks that are actually relevant (score ≥ 0.65).
+  const retrievedChunks = retrievedChunksRaw.filter((c) => c.score >= 0.65);
+
   let augmentedSystem =
     retrievedChunks.length > 0
       ? `${DIABO_PERSONA_FR}\n\n## Contexte issu de la base de connaissances Diabo\nUtilise ces éléments quand c'est pertinent, mais reste empathique et naturel — ne les cite pas comme des sources académiques.\n\n${retrievedChunks
@@ -135,21 +148,11 @@ export async function POST(req: Request) {
           .join('\n\n')}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`
       : `${DIABO_PERSONA_FR}\n\n${RESTAURANT_TOOL_INSTRUCTIONS}`;
 
-  const onboardingProfile = await getOnboardingProfile(req, userId, anonId).catch(
-    (err) => {
-      console.warn('[chat] getOnboardingProfile failed, continuing:', err);
-      return null;
-    },
-  );
   const onboardingBlock = buildOnboardingProfileBlock(onboardingProfile);
   if (onboardingBlock) {
     augmentedSystem = `${augmentedSystem}\n\n${onboardingBlock}`;
   }
 
-  const profile = await getProfile(chatId).catch((err) => {
-    console.warn('[chat] getProfile failed, continuing without memory:', err);
-    return null;
-  });
   if (profile) {
     const memoryBlock = buildMemoryBlock(profile);
     if (memoryBlock) {

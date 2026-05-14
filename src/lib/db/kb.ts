@@ -100,7 +100,7 @@ export async function searchKb(
           index: KB_VECTOR_INDEX,
           path: 'embedding',
           queryVector,
-          numCandidates: Math.max(limit * 10, 30),
+          numCandidates: Math.max(limit * 8, 16),
           limit,
         },
       },
