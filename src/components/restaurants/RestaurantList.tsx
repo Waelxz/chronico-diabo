@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import type { MapPin } from '@/components/map/VectorMap';
 import {
   carbTierLabel,
+  scoreLabel,
   type CarbLoadTier,
   type RankedRestaurant,
   type RestaurantsApiResponse,
@@ -319,8 +320,13 @@ function RestaurantCard({
           <span className="text-zinc-500 dark:text-zinc-400">
             Score diabète
           </span>
-          <span className="text-zinc-900 dark:text-zinc-100">
-            {formatScore(restaurant.score)}
+          <span className="flex items-center gap-1.5">
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+              {formatScore(restaurant.score)}
+            </span>
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${scoreBarClass(restaurant.score) === 'bg-emerald-500' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : scoreBarClass(restaurant.score) === 'bg-amber-500' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'}`}>
+              {scoreLabel(restaurant.score)}
+            </span>
           </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
