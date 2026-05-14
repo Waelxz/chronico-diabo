@@ -98,7 +98,7 @@ Requirements: **Node 20.9+** (Next.js 16 requirement; we test on Node 24).
 | 2 | Empathy module (HF sentiment → DiaboCon empathetic preset) | 🟢 done |
 | 3 | RAG over diabetes KB (Atlas Vector Search, 14 FR seed chunks) | 🟢 done |
 | 4 | Restaurants module (Overpass + LLM scoring + Leaflet) + KB citation chips | 🟢 done |
-| 5 | Hotels + travel module | ⚪ |
+| 5 | Hotels + travel module | 🟢 done |
 | 6 | Glucose tracker (manual) — log/chart/weekly LLM summary + PDF export | ⚪ |
 | 7 | Auth + reminders + Web Push + multi-conv sidebar + companion memory | ⚪ |
 | 8 | Multilingual FR + AR (RTL) | ⚪ |

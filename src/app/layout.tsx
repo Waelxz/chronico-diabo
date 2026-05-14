@@ -54,6 +54,12 @@ export default function RootLayout({
             >
               Restaurants
             </Link>
+            <Link
+              href="/hotels"
+              className="text-sm text-zinc-600 transition hover:text-emerald-700 dark:text-zinc-400 dark:hover:text-emerald-400"
+            >
+              Hôtels
+            </Link>
           </div>
         </nav>
         {children}

@@ -12,6 +12,7 @@ import { getChatModel } from '@/lib/llm';
 import { DIABO_PERSONA_FR } from '@/lib/diabo/persona';
 import { appendMessage, touchChat } from '@/lib/db/chats';
 import { searchKb, type KbChunkResult } from '@/lib/db/kb';
+import { findHotelsForChat } from '@/lib/hotels/tool';
 import { findRestaurantsForChat } from '@/lib/restaurants/tool';
 import type {
   DiaboMessageMetadata,
@@ -36,7 +37,7 @@ export const maxDuration = 60;
 const COOKIE_NAME = 'diabo_chat_id';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const RESTAURANT_TOOL_INSTRUCTIONS =
-  "Si l'utilisateur demande des restaurants, appelle findRestaurants. Réponds ensuite en français avec les 3 meilleurs choix, leur score, le niveau de glucides et une phrase de prudence. Si la position est approximative, dis-le brièvement et propose de partager une localisation plus précise.";
+  "Si l'utilisateur demande des restaurants, appelle findRestaurants. Réponds ensuite en français avec les 3 meilleurs choix, leur score, le niveau de glucides et une phrase de prudence. Si la position est approximative, dis-le brièvement et propose de partager une localisation plus précise. Si l'utilisateur demande des hôtels ou hébergements, appelle findHotels.";
 
 type ChatRequestBody = { messages: UIMessage[] };
 
@@ -134,6 +135,18 @@ export async function POST(req: Request) {
             .describe('Préférences éventuelles: grillade, poisson, salade, etc.'),
         }),
         execute: findRestaurantsForChat,
+      }),
+      findHotels: tool({
+        description:
+          'Trouve des hôtels proches adaptés aux voyageurs diabétiques (accès fauteuil, étoiles, proximité soins).',
+        inputSchema: z.object({
+          near: z
+            .string()
+            .describe(
+              'Zone demandée, ex: Tunis, Sousse ou coordonnées 36.8,10.1',
+            ),
+        }),
+        execute: findHotelsForChat,
       }),
     },
     stopWhen: stepCountIs(3),
