@@ -1,9 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+import type { MapPin } from '@/components/map/VectorMap';
 import type { RankedHotel } from '@/lib/hotel-scorer';
 
 const TUNIS = { lat: 36.8065, lon: 10.1815 };
+const VectorMap = dynamic(
+  () => import('@/components/map/VectorMap').then((mod) => mod.VectorMap),
+  { ssr: false },
+);
 
 type HotelsApiResponse = {
   hotels: RankedHotel[];
@@ -16,6 +22,7 @@ export function HotelList() {
   const [radius, setRadius] = useState(2000);
   const [minScore, setMinScore] = useState(0);
   const [hotels, setHotels] = useState<RankedHotel[]>([]);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +70,19 @@ export function HotelList() {
     [hotels, minScore],
   );
 
+  const mapPins = useMemo<MapPin[]>(
+    () =>
+      visibleHotels.map((hotel) => ({
+        id: hotel.place_id,
+        lat: hotel.lat,
+        lon: hotel.lon,
+        label: hotel.name,
+        score: hotel.score,
+        selected: selectedPlaceId === hotel.place_id,
+      })),
+    [selectedPlaceId, visibleHotels],
+  );
+
   function useCurrentLocation() {
     if (!navigator.geolocation) {
       setError("La géolocalisation n'est pas disponible dans ce navigateur.");
@@ -98,7 +118,7 @@ export function HotelList() {
             id="hotel-distance"
             value={radius}
             onChange={(event) => setRadius(Number(event.target.value))}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-all duration-150 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           >
             <option value={1000}>1 km</option>
             <option value={2000}>2 km</option>
@@ -132,11 +152,20 @@ export function HotelList() {
         <button
           type="button"
           onClick={useCurrentLocation}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-emerald-700"
         >
           Utiliser ma position
         </button>
       </section>
+
+      {mapPins.length > 0 ? (
+        <VectorMap
+          center={center}
+          pins={mapPins}
+          onSelect={setSelectedPlaceId}
+          className="h-64 overflow-hidden rounded-xl"
+        />
+      ) : null}
 
       <section className="space-y-4" aria-label="Liste des hôtels">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -147,7 +176,7 @@ export function HotelList() {
             type="button"
             onClick={() => void loadHotels()}
             disabled={loading}
-            className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+            className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-150 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
           >
             {loading ? 'Chargement...' : 'Actualiser'}
           </button>
@@ -176,7 +205,11 @@ export function HotelList() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visibleHotels.map((hotel) => (
-              <HotelCard key={hotel.place_id} hotel={hotel} />
+              <HotelCard
+                key={hotel.place_id}
+                hotel={hotel}
+                selected={selectedPlaceId === hotel.place_id}
+              />
             ))}
           </div>
         )}
@@ -185,11 +218,27 @@ export function HotelList() {
   );
 }
 
-function HotelCard({ hotel }: { hotel: RankedHotel }) {
+function HotelCard({
+  hotel,
+  selected,
+}: {
+  hotel: RankedHotel;
+  selected: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [scoreReady, setScoreReady] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setScoreReady(true), 50);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
+    <article
+      className={`rounded-lg border border-zinc-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 dark:border-zinc-800/60 dark:bg-zinc-900 dark:hover:border-emerald-800 ${
+        selected ? 'ring-2 ring-emerald-500' : ''
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">
@@ -219,8 +268,8 @@ function HotelCard({ hotel }: { hotel: RankedHotel }) {
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
           <div
-            className={`h-full rounded-full ${scoreBarClass(hotel.score)}`}
-            style={{ width: `${hotel.score}%` }}
+            className={`h-full rounded-full transition-[width] duration-500 ease-out ${scoreBarClass(hotel.score)}`}
+            style={{ width: scoreReady ? `${hotel.score}%` : '0%' }}
           />
         </div>
       </div>

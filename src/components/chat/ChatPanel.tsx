@@ -1,8 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { ArrowUp, Square } from 'lucide-react';
 import { useDiabo } from '@/components/diabo/DiaboProvider';
 import type {
   DiaboMessageMetadata,
@@ -10,20 +21,41 @@ import type {
 } from '@/lib/diabo/citations';
 
 type ChatPanelProps = {
+  children?: ReactNode;
   className?: string;
   signedIn?: boolean;
 };
 
+type ChatMessage = ReturnType<typeof useChat>['messages'][number];
+type ChatStatus = ReturnType<typeof useChat>['status'];
+
+type ChatContextValue = {
+  error: Error | undefined;
+  handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  hydrating: boolean;
+  input: string;
+  isBusy: boolean;
+  messages: ChatMessage[];
+  regenerate: () => void;
+  setInput: (value: string) => void;
+  status: ChatStatus;
+  stop: () => void;
+};
+
+const ChatContext = createContext<ChatContextValue | null>(null);
+
 /**
- * Sprint-1 chat surface for Diabo.
+ * Chat state shell for Diabo.
  *
- * - Uses the AI SDK `useChat` hook with `DefaultChatTransport` pointing at
- *   `/api/chat`.
- * - Drives the Diabo avatar lifecycle from the chat status: `submitted` →
- *   thinking, `streaming` → talking, otherwise idle.
- * - All copy is in French (Maghreb francophone audience per AGENTS.md).
+ * The AI SDK transport, conversation hydration and avatar lifecycle stay here.
+ * The visual pieces are exported separately so pages can place messages, avatar
+ * and input without duplicating chat logic.
  */
-export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
+export function ChatPanel({
+  children,
+  className,
+  signedIn = false,
+}: ChatPanelProps) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const transport = useMemo(
     () =>
@@ -53,7 +85,7 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [hydrating, setHydrating] = useState(true);
   const { setIsThinking, setIsTalking, applyEmotion } = useDiabo();
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const isBusy = status === 'submitted' || status === 'streaming';
 
   useEffect(() => {
     if (!signedIn) return;
@@ -67,7 +99,6 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
     };
   }, [signedIn]);
 
-  // Hydrate from server on mount so a page refresh keeps the conversation.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -97,7 +128,6 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
         };
         if (cancelled) return;
         if (data.messages.length > 0) {
-          // AI SDK accepts the same UIMessage shape we return on the server.
           setMessages(data.messages as Parameters<typeof setMessages>[0]);
         }
       } catch (err) {
@@ -111,7 +141,6 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
     };
   }, [activeChatId, setMessages, signedIn]);
 
-  // Drive Diabo lifecycle from chat status.
   useEffect(() => {
     if (status === 'submitted') {
       setIsThinking(true);
@@ -125,22 +154,13 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
     }
   }, [status, setIsThinking, setIsTalking]);
 
-  // Auto-scroll to the latest message.
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, status]);
-
-  const isBusy = status === 'submitted' || status === 'streaming';
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  const handleSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || isBusy || hydrating) return;
     sendMessage({ text: trimmed });
     setInput('');
-    // Parallel emotion analysis: drives Diabo's face independently of the
-    // chat stream. Non-blocking, errors swallowed — Diabo stays put on
-    // failure rather than dragging the user down with a broken UI.
+
     fetch('/api/emotion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -157,126 +177,233 @@ export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
         }
       })
       .catch((err) => console.warn('[ChatPanel] emotion failed:', err));
-  }
+  }, [applyEmotion, hydrating, input, isBusy, sendMessage]);
+
+  const value = useMemo<ChatContextValue>(
+    () => ({
+      error,
+      handleSubmit,
+      hydrating,
+      input,
+      isBusy,
+      messages,
+      regenerate,
+      setInput,
+      status,
+      stop,
+    }),
+    [
+      error,
+      handleSubmit,
+      hydrating,
+      input,
+      isBusy,
+      messages,
+      regenerate,
+      status,
+      stop,
+    ],
+  );
 
   return (
-    <section
-      className={`flex h-full min-h-[28rem] flex-col rounded-3xl border border-emerald-100/80 bg-white/70 shadow-lg backdrop-blur-md dark:border-emerald-900/40 dark:bg-zinc-900/60 ${className ?? ''}`}
-      aria-label="Conversation avec Diabo"
-    >
-      <header className="flex items-center justify-between border-b border-emerald-100/80 px-5 py-3 dark:border-emerald-900/40">
-        <div className="flex items-center gap-2">
-          <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
-          <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
-            Discuter avec Diabo
-          </h2>
-        </div>
-        {messages.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => regenerate()}
-            disabled={isBusy}
-            className="text-xs font-medium text-emerald-700 transition hover:text-emerald-900 disabled:opacity-40 dark:text-emerald-300 dark:hover:text-emerald-200"
-          >
-            Régénérer
-          </button>
-        ) : null}
-      </header>
-
-      <div className="flex flex-1 flex-col justify-end gap-3 overflow-y-auto px-5 py-4 text-sm">
-        {messages.length === 0 ? (
-          hydrating ? <HydratingState /> : <EmptyState />
-        ) : (
-          messages.map((m, index) => {
-            const meta = (m as { metadata?: DiaboMessageMetadata }).metadata;
-            const citations =
-              m.role === 'assistant' ? meta?.kbCitations : undefined;
-            const age = messages.length - 1 - index;
-            return (
-              <div
-                key={m.id}
-                className={`space-y-1 transition-opacity duration-500 ${messageOpacityClass(
-                  age,
-                )}`}
-              >
-                <Bubble role={m.role}>
-                  {m.parts
-                    .filter((p) => p.type === 'text')
-                    .map((p, i) => (
-                      <span key={i}>
-                        {(p as { type: 'text'; text: string }).text}
-                      </span>
-                    ))}
-                </Bubble>
-                {citations && citations.length > 0 ? (
-                  <Citations items={citations} />
-                ) : null}
-              </div>
-            );
-          })
-        )}
-        {status === 'submitted' ? (
-          <Bubble role="assistant" pending>
-            <TypingDots />
-          </Bubble>
-        ) : null}
-        {error ? (
-          <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
-            Oups — Diabo n&apos;a pas pu répondre : {error.message}
-          </p>
-        ) : null}
-        <div ref={bottomRef} aria-hidden />
-      </div>
-
-      <form
-        onSubmit={handleSubmit}
-        className="flex gap-2 border-t border-emerald-100/80 px-3 py-3 dark:border-emerald-900/40"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={hydrating ? 'Chargement de la conversation…' : "Parle à Diabo… (Comment te sens-tu aujourd'hui ?)"}
-          disabled={status === 'error' || hydrating}
-          className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-          autoComplete="off"
-        />
-        {isBusy ? (
-          <button
-            type="button"
-            onClick={() => stop()}
-            className="rounded-full bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
-          >
-            Stop
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={input.trim().length === 0 || hydrating}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Envoyer
-          </button>
-        )}
-      </form>
-    </section>
+    <ChatContext.Provider value={value}>
+      {children ?? (
+        <section
+          className={`flex flex-1 flex-col rounded-3xl border border-emerald-100/80 bg-white/70 shadow-lg backdrop-blur-md dark:border-emerald-900/40 dark:bg-zinc-900/60 ${className ?? ''}`}
+          aria-label="Conversation avec Diabo"
+        >
+          <ChatHeader />
+          <ChatMessages />
+          <ChatInputBar />
+        </section>
+      )}
+    </ChatContext.Provider>
   );
 }
 
-function messageOpacityClass(ageFromLatest: number): string {
-  if (ageFromLatest < 3) return 'opacity-100';
-  if (ageFromLatest < 6) return 'opacity-60';
-  return 'opacity-30';
+export function ChatMessages({ className }: { className?: string }) {
+  const { messages, status, error, hydrating } = useChatContext();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    sentinelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, status]);
+
+  return (
+    <div
+      className={`flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-28 pt-4 text-sm ${className ?? ''}`}
+      aria-live="polite"
+    >
+      {messages.length === 0 ? (
+        hydrating ? (
+          <HydratingState />
+        ) : (
+          <EmptyState />
+        )
+      ) : (
+        messages.map((m) => {
+          const meta = (m as { metadata?: DiaboMessageMetadata }).metadata;
+          const citations =
+            m.role === 'assistant' ? meta?.kbCitations : undefined;
+          return (
+            <MessageRow
+              key={m.id}
+              role={m.role}
+              text={m.parts
+                .filter((p) => p.type === 'text')
+                .map((p) => (p as { type: 'text'; text: string }).text)
+                .join('\n')}
+              citations={citations}
+            />
+          );
+        })
+      )}
+      {status === 'submitted' ? (
+        <AssistantRow>
+          <TypingDots />
+        </AssistantRow>
+      ) : null}
+      {error ? (
+        <p className="rounded-2xl bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+          Oups, Diabo n&apos;a pas pu répondre : {error.message}
+        </p>
+      ) : null}
+      <div ref={sentinelRef} className="h-0" aria-hidden />
+    </div>
+  );
+}
+
+export function ChatInputBar({ className }: { className?: string }) {
+  const { handleSubmit, hydrating, input, isBusy, setInput, status, stop } =
+    useChatContext();
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className={`flex w-full items-center gap-2 border-t border-zinc-200/80 bg-white/90 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950/90 ${className ?? ''}`}
+    >
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder={hydrating ? 'Chargement de la conversation...' : 'Écris quelque chose...'}
+        disabled={status === 'error' || hydrating}
+        className="min-w-0 flex-1 rounded-full border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-400 transition-transform duration-150 focus:scale-[1.01] focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        autoComplete="off"
+      />
+      {isBusy ? (
+        <button
+          type="button"
+          onClick={() => stop()}
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-white transition-all duration-150 hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          aria-label="Arrêter la réponse"
+        >
+          <Square className="size-4 fill-current" aria-hidden />
+        </button>
+      ) : (
+        <button
+          type="submit"
+          disabled={input.trim().length === 0 || hydrating}
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-white transition-all duration-150 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-300"
+          aria-label="Envoyer"
+        >
+          <ArrowUp className="size-5" aria-hidden />
+        </button>
+      )}
+    </form>
+  );
+}
+
+function ChatHeader() {
+  const { messages, isBusy, regenerate } = useChatContext();
+
+  return (
+    <header className="flex items-center justify-between border-b border-emerald-100/80 px-5 py-3 dark:border-emerald-900/40">
+      <div className="flex items-center gap-2">
+        <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
+        <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+          Discuter avec Diabo
+        </h2>
+      </div>
+      {messages.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => regenerate()}
+          disabled={isBusy}
+          className="text-xs font-medium text-emerald-700 transition-all duration-150 hover:text-emerald-900 disabled:opacity-40 dark:text-emerald-300 dark:hover:text-emerald-200"
+        >
+          Régénérer
+        </button>
+      ) : null}
+    </header>
+  );
+}
+
+function MessageRow({
+  citations,
+  role,
+  text,
+}: {
+  citations?: KbCitation[];
+  role: ChatMessage['role'];
+  text: string;
+}) {
+  if (role === 'user') {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[72%] rounded-2xl rounded-br-none bg-zinc-800 px-4 py-2.5 text-sm leading-6 text-white">
+          {text}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <AssistantRow>{renderMarkdownLite(text)}</AssistantRow>
+      {citations && citations.length > 0 ? <Citations items={citations} /> : null}
+    </div>
+  );
+}
+
+function AssistantRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex max-w-[82%] items-start gap-2 text-zinc-900 dark:text-zinc-100">
+      <span className="mt-1 grid size-3 shrink-0 place-items-center rounded-full bg-emerald-500 text-[7px] font-bold leading-none text-white">
+        D
+      </span>
+      <div className="min-w-0 text-sm leading-6">{children}</div>
+    </div>
+  );
+}
+
+function renderMarkdownLite(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\n)/g);
+  return parts.map((part, index) => {
+    if (part === '\n') return <br key={index} />;
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={index}>{part.slice(1, -1)}</em>;
+    }
+    return <span key={index}>{part}</span>;
+  });
 }
 
 function EmptyState() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-10 text-center text-zinc-500 dark:text-zinc-400">
       <p className="text-sm">
-        Bonjour, je suis <span className="font-semibold text-emerald-700 dark:text-emerald-300">Diabo</span>.
+        Bonjour, je suis{' '}
+        <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+          Diabo
+        </span>
+        .
       </p>
       <p className="max-w-xs text-xs">
-        Pose-moi une question, partage ce que tu ressens, ou demande-moi un conseil pour vivre avec le diabète.
+        Pose-moi une question, partage ce que tu ressens, ou demande-moi un
+        conseil pour vivre avec le diabète.
       </p>
     </div>
   );
@@ -290,39 +417,17 @@ function HydratingState() {
         <span className="size-1.5 animate-bounce rounded-full bg-emerald-400 [animation-delay:-0.15s]" />
         <span className="size-1.5 animate-bounce rounded-full bg-emerald-400" />
       </span>
-      <p className="text-xs">Récupération de votre conversation…</p>
-    </div>
-  );
-}
-
-function Bubble({
-  role,
-  pending,
-  children,
-}: {
-  role: 'user' | 'assistant' | 'system';
-  pending?: boolean;
-  children: React.ReactNode;
-}) {
-  const isUser = role === 'user';
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={
-          isUser
-            ? 'max-w-[80%] rounded-2xl rounded-br-sm bg-emerald-600 px-4 py-2 text-sm text-white shadow'
-            : `max-w-[80%] rounded-2xl rounded-bl-sm border border-zinc-100 bg-white px-4 py-2 text-sm text-zinc-800 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 ${pending ? 'animate-pulse' : ''}`
-        }
-      >
-        {children}
-      </div>
+      <p className="text-xs">Récupération de votre conversation...</p>
     </div>
   );
 }
 
 function TypingDots() {
   return (
-    <span className="inline-flex items-center gap-1" aria-label="Diabo réfléchit…">
+    <span
+      className="inline-flex items-center gap-1"
+      aria-label="Diabo réfléchit..."
+    >
       <span className="size-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.3s]" />
       <span className="size-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.15s]" />
       <span className="size-1.5 animate-bounce rounded-full bg-emerald-500" />
@@ -330,24 +435,19 @@ function TypingDots() {
   );
 }
 
-/**
- * Renders the RAG citations Diabo consulted to answer the last message.
- * Soft emerald pills under the assistant bubble — informational, not
- * clickable (sprint-9 polish could open the chunk in a side sheet).
- */
 function Citations({ items }: { items: KbCitation[] }) {
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5 pl-1 pt-0.5"
+      className="flex flex-wrap items-center gap-1.5 pl-5 pt-0.5"
       aria-label="Sources consultées par Diabo"
     >
       <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/80">
-        Diabo a consulté ·
+        Diabo a consulté ·
       </span>
       {items.map((c) => (
         <span
           key={c.title}
-          title={`Pertinence : ${(c.score * 100).toFixed(0)} %`}
+          title={`Pertinence : ${(c.score * 100).toFixed(0)} %`}
           className="inline-flex items-center rounded-full border border-emerald-200/70 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/50 dark:text-emerald-200"
         >
           {c.title}
@@ -355,4 +455,12 @@ function Citations({ items }: { items: KbCitation[] }) {
       ))}
     </div>
   );
+}
+
+function useChatContext() {
+  const ctx = useContext(ChatContext);
+  if (!ctx) {
+    throw new Error('ChatMessages and ChatInputBar must be used inside ChatPanel');
+  }
+  return ctx;
 }

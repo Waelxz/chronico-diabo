@@ -84,7 +84,7 @@ export function Sidebar({ session }: SidebarProps) {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-56 flex-col border-r border-zinc-800 bg-zinc-950 text-zinc-400 shadow-2xl transition-all duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-56 flex-col border-r border-zinc-800 bg-zinc-950 text-zinc-400 shadow-2xl transition-[width,transform] duration-300 ease-in-out lg:translate-x-0 ${
           expanded ? 'lg:w-56' : 'lg:w-[4.5rem]'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Navigation principale"
@@ -97,6 +97,7 @@ export function Sidebar({ session }: SidebarProps) {
           <Link
             href="/"
             onClick={() => setMobileOpen(false)}
+            title="Diabo"
             className="inline-flex min-w-0 items-center gap-3 text-white"
             aria-label="Diabo"
           >
@@ -137,7 +138,7 @@ export function Sidebar({ session }: SidebarProps) {
             <button
               type="submit"
               title={compact ? authLabel : undefined}
-              className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition hover:bg-emerald-500 ${
+            className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
                 compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
               }`}
             >
@@ -149,7 +150,7 @@ export function Sidebar({ session }: SidebarProps) {
           <button
             type="button"
             onClick={() => setExpanded((value) => !value)}
-            className="hidden h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition hover:border-emerald-500 hover:text-emerald-300 lg:inline-flex"
+            className="hidden h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 lg:inline-flex"
             aria-label={expanded ? 'Réduire la navigation' : 'Déployer la navigation'}
             aria-expanded={expanded}
           >
@@ -186,22 +187,19 @@ function SidebarLink({
       href={item.href}
       onClick={onNavigate}
       title={compact ? item.label : undefined}
-      className={`group relative flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition ${
+      className={`group relative flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-all duration-150 ${
         compact ? 'lg:justify-center lg:px-0' : ''
       } ${
         active
-          ? 'bg-zinc-900 text-emerald-400'
+          ? 'bg-zinc-900 text-emerald-400 shadow-[inset_3px_0_0_#10b981]'
           : 'text-zinc-400 hover:bg-zinc-900/70 hover:text-white'
       }`}
       aria-current={active ? 'page' : undefined}
     >
-      {active ? (
-        <span className="absolute left-0 top-2 h-7 w-0.5 rounded-full bg-emerald-500" />
-      ) : null}
       <Icon className="size-4 shrink-0" aria-hidden />
       <span className={compact ? 'lg:sr-only' : ''}>{item.label}</span>
       {compact ? (
-        <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] hidden rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 lg:block">
+        <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] hidden rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity delay-150 group-hover:opacity-100 lg:block">
           {item.label}
         </span>
       ) : null}

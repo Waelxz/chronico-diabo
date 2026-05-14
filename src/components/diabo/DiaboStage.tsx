@@ -32,6 +32,7 @@ export type DiaboStageProps = {
  *   - `mouthState`                → number    (0..8, resting mouth pose)
  *   - `eyebrowMood`               → number    (0..4, sentiment-driven)
  *   - `eyelidState`               → number    (0..1, fatigue cue)
+ *   - `lookX`, `lookY`             → number    (pupil tracking, px offsets)
  *   - `happiness`                 → number    (0..1, tail wag threshold ≥ 0.3)
  */
 export function DiaboStage({ className }: DiaboStageProps) {
@@ -51,6 +52,8 @@ export function DiaboStage({ className }: DiaboStageProps) {
     mouthState,
     eyebrowMood,
     eyelidState,
+    lookX,
+    lookY,
     happiness,
   } = useDiaboState();
 
@@ -81,6 +84,8 @@ export function DiaboStage({ className }: DiaboStageProps) {
     'happiness',
     vm,
   );
+  const { setValue: setRiveLookX } = useViewModelInstanceNumber('lookX', vm);
+  const { setValue: setRiveLookY } = useViewModelInstanceNumber('lookY', vm);
 
   useEffect(() => {
     setRiveTalking(Boolean(isTalking));
@@ -105,6 +110,14 @@ export function DiaboStage({ className }: DiaboStageProps) {
   useEffect(() => {
     if (happiness !== undefined) setRiveHappiness(happiness);
   }, [happiness, setRiveHappiness]);
+
+  useEffect(() => {
+    if (lookX !== undefined) setRiveLookX(lookX);
+  }, [lookX, setRiveLookX]);
+
+  useEffect(() => {
+    if (lookY !== undefined) setRiveLookY(lookY);
+  }, [lookY, setRiveLookY]);
 
   return (
     <RiveComponent

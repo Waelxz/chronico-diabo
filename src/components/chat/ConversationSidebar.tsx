@@ -73,25 +73,34 @@ export function ConversationSidebar() {
   }
 
   return (
-    <aside className="lg:w-72">
+    <aside className="lg:w-72 lg:shrink-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="mb-3 inline-flex items-center rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm lg:hidden"
+        className="fixed right-4 top-4 z-40 inline-flex items-center rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-all duration-150 lg:hidden"
         aria-expanded={open}
       >
         Conversations
       </button>
 
+      {open ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-zinc-950/40 lg:hidden"
+          aria-label="Fermer les conversations"
+          onClick={() => setOpen(false)}
+        />
+      ) : null}
+
       <div
         className={`${
-          open ? 'block' : 'hidden'
-        } rounded-lg border border-zinc-200 bg-zinc-50 p-3 shadow-sm lg:block dark:border-zinc-800 dark:bg-zinc-950`}
+          open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+        } fixed bottom-0 right-0 top-0 z-40 w-80 max-w-[calc(100vw-1rem)] overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-3 shadow-2xl transition-transform duration-300 lg:static lg:block lg:w-auto lg:max-w-none lg:translate-x-0 lg:rounded-lg lg:border lg:shadow-sm dark:border-zinc-800 dark:bg-zinc-950`}
       >
         <button
           type="button"
           onClick={() => selectChat(null)}
-          className="mb-3 w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          className="mb-3 w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-700"
         >
           Nouvelle conversation
         </button>
@@ -117,7 +126,7 @@ export function ConversationSidebar() {
                 key={chat.id}
                 type="button"
                 onClick={() => selectChat(chat.id)}
-                className={`w-full rounded-md px-3 py-2 text-left transition ${
+                className={`w-full rounded-md px-3 py-2 text-left transition-all duration-150 ${
                   activeChatId === chat.id
                     ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100'
                     : 'text-zinc-700 hover:bg-white dark:text-zinc-300 dark:hover:bg-zinc-900'

@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+import type { MapPin } from '@/components/map/VectorMap';
 import {
   carbTierLabel,
   type CarbLoadTier,
@@ -9,6 +11,10 @@ import {
 } from '@/lib/restaurants/types';
 
 const TUNIS = { lat: 36.8065, lon: 10.1815 };
+const VectorMap = dynamic(
+  () => import('@/components/map/VectorMap').then((mod) => mod.VectorMap),
+  { ssr: false },
+);
 
 type SortKey = 'score' | 'distance' | 'name';
 
@@ -19,6 +25,7 @@ export function RestaurantList() {
   const [minScore, setMinScore] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>('score');
   const [restaurants, setRestaurants] = useState<RankedRestaurant[]>([]);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +87,19 @@ export function RestaurantList() {
     });
   }, [minScore, restaurants, sortKey]);
 
+  const mapPins = useMemo<MapPin[]>(
+    () =>
+      visibleRestaurants.map((restaurant) => ({
+        id: restaurant.place_id,
+        lat: restaurant.lat,
+        lon: restaurant.lon,
+        label: restaurant.name,
+        score: restaurant.score,
+        selected: selectedPlaceId === restaurant.place_id,
+      })),
+    [selectedPlaceId, visibleRestaurants],
+  );
+
   function useCurrentLocation() {
     if (!navigator.geolocation) {
       setError("La géolocalisation n'est pas disponible dans ce navigateur.");
@@ -116,7 +136,7 @@ export function RestaurantList() {
             value={cuisine}
             onChange={(event) => setCuisine(event.target.value)}
             placeholder="Tous"
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-all duration-150 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
           <datalist id="cuisine-options">
             {cuisineOptions.map((option) => (
@@ -136,7 +156,7 @@ export function RestaurantList() {
             id="distance"
             value={radius}
             onChange={(event) => setRadius(Number(event.target.value))}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-all duration-150 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           >
             <option value={800}>800 m</option>
             <option value={1500}>1,5 km</option>
@@ -178,7 +198,7 @@ export function RestaurantList() {
             id="sort"
             value={sortKey}
             onChange={(event) => setSortKey(event.target.value as SortKey)}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-all duration-150 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           >
             <option value="score">Score</option>
             <option value="distance">Distance</option>
@@ -189,7 +209,7 @@ export function RestaurantList() {
         <button
           type="button"
           onClick={useCurrentLocation}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-emerald-700"
         >
           Utiliser ma position
         </button>
@@ -206,6 +226,15 @@ export function RestaurantList() {
         </p>
       ) : null}
 
+      {mapPins.length > 0 ? (
+        <VectorMap
+          center={center}
+          pins={mapPins}
+          onSelect={setSelectedPlaceId}
+          className="h-64 overflow-hidden rounded-xl"
+        />
+      ) : null}
+
       <section className="space-y-4" aria-label="Liste des restaurants">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
@@ -215,7 +244,7 @@ export function RestaurantList() {
             type="button"
             onClick={() => void loadRestaurants()}
             disabled={loading}
-            className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+            className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-150 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
           >
             {loading ? 'Chargement...' : 'Actualiser'}
           </button>
@@ -235,6 +264,7 @@ export function RestaurantList() {
               <RestaurantCard
                 key={restaurant.place_id}
                 restaurant={restaurant}
+                selected={selectedPlaceId === restaurant.place_id}
               />
             ))}
           </div>
@@ -244,12 +274,28 @@ export function RestaurantList() {
   );
 }
 
-function RestaurantCard({ restaurant }: { restaurant: RankedRestaurant }) {
+function RestaurantCard({
+  restaurant,
+  selected,
+}: {
+  restaurant: RankedRestaurant;
+  selected: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [scoreReady, setScoreReady] = useState(false);
   const cuisineLabel = restaurant.cuisine[0] ?? 'Cuisine non renseignée';
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setScoreReady(true), 50);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
   return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
+    <article
+      className={`rounded-lg border border-zinc-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 dark:border-zinc-800/60 dark:bg-zinc-900 dark:hover:border-emerald-800 ${
+        selected ? 'ring-2 ring-emerald-500' : ''
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">
@@ -279,8 +325,8 @@ function RestaurantCard({ restaurant }: { restaurant: RankedRestaurant }) {
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
           <div
-            className={`h-full rounded-full ${scoreBarClass(restaurant.score)}`}
-            style={{ width: `${restaurant.score}%` }}
+            className={`h-full rounded-full transition-[width] duration-500 ease-out ${scoreBarClass(restaurant.score)}`}
+            style={{ width: scoreReady ? `${restaurant.score}%` : '0%' }}
           />
         </div>
       </div>

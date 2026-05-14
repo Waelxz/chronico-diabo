@@ -1,34 +1,45 @@
-import { ChatPanel } from '@/components/chat/ChatPanel';
+import { getTranslations } from 'next-intl/server';
+import {
+  ChatInputBar,
+  ChatMessages,
+  ChatPanel,
+} from '@/components/chat/ChatPanel';
 import { ConversationSidebar } from '@/components/chat/ConversationSidebar';
 import { DiaboProvider } from '@/components/diabo/DiaboProvider';
-import { DiaboStage } from '@/components/diabo/DiaboStage';
+import { HomeDiaboStage } from '@/components/diabo/HomeDiaboStage';
 import { auth } from '@/lib/auth';
 
 export default async function HomePage() {
-  const session = await auth();
+  const [session, t] = await Promise.all([auth(), getTranslations('home')]);
   const signedIn = Boolean(session?.user?.id);
 
   return (
-    <section className="flex min-h-[calc(100vh-3.5rem)] flex-1 flex-col bg-gradient-to-b from-emerald-50 via-white to-sky-50 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
-      <DiaboProvider>
-        <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 items-center gap-8 px-6 py-10 lg:min-h-[34rem] lg:py-12">
-          <div
-            className={`grid w-full grid-cols-1 gap-8 ${
-              signedIn
-                ? 'lg:grid-cols-[18rem_0.9fr_1.05fr]'
-                : 'lg:grid-cols-[1fr_1.05fr]'
-            } lg:items-stretch`}
-          >
+    <DiaboProvider>
+      <ChatPanel signedIn={signedIn}>
+        <main className="flex h-dvh flex-col bg-gradient-to-b from-emerald-50 via-white to-sky-50 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
+          <header className="px-4 pb-2 pt-6 text-center">
+            <h1 className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
+              {t('title')}
+            </h1>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
+              {t('subtitle')}
+            </p>
+          </header>
+
+          <div className="flex flex-1 overflow-hidden">
             {signedIn ? <ConversationSidebar /> : null}
-            <div className="flex items-center justify-center">
-              <div className="relative aspect-square w-full max-w-md">
-                <DiaboStage className="absolute inset-0 h-full w-full" />
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-end gap-6 px-4 pb-6">
+              <ChatMessages className="w-full max-w-2xl" />
+              <div className="flex w-full max-w-2xl flex-col items-center gap-4">
+                <div className="size-[200px] shrink-0 lg:size-[280px]">
+                  <HomeDiaboStage />
+                </div>
+                <ChatInputBar className="rounded-full border border-zinc-200/80 shadow-lg shadow-emerald-950/5 dark:border-zinc-800" />
               </div>
             </div>
-            <ChatPanel className="w-full" signedIn={signedIn} />
           </div>
-        </div>
-      </DiaboProvider>
-    </section>
+        </main>
+      </ChatPanel>
+    </DiaboProvider>
   );
 }
