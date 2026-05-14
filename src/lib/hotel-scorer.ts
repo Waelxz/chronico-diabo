@@ -12,6 +12,7 @@ const ScoreSchema = z.object({
   rationale: z.string().min(12).max(260),
   accessibility: z.enum(['good', 'moderate', 'unknown']),
 });
+const SCORE_CONCURRENCY = 4;
 
 export interface HotelScore {
   score: number;
@@ -60,20 +61,25 @@ export async function rankHotels({
   maxToScore?: number;
 }): Promise<RankedHotel[]> {
   const selected = hotels.slice(0, maxToScore);
-  const scored = await Promise.all(
-    selected.map(async (hotel) => {
-      const score = await scoreHotel(hotel);
-      return {
-        ...hotel,
-        score: score.score,
-        rationale: score.rationale,
-        accessibility: score.accessibility,
-        cacheHit: score.cacheHit,
-        cachedAt: score.cachedAt?.toISOString(),
-        distanceMeters: distanceMeters(userLat, userLon, hotel.lat, hotel.lon),
-      };
-    }),
-  );
+  const scored: RankedHotel[] = [];
+  for (let index = 0; index < selected.length; index += SCORE_CONCURRENCY) {
+    const chunk = selected.slice(index, index + SCORE_CONCURRENCY);
+    const chunkScored = await Promise.all(
+      chunk.map(async (hotel) => {
+        const score = await scoreHotel(hotel);
+        return {
+          ...hotel,
+          score: score.score,
+          rationale: score.rationale,
+          accessibility: score.accessibility,
+          cacheHit: score.cacheHit,
+          cachedAt: score.cachedAt?.toISOString(),
+          distanceMeters: distanceMeters(userLat, userLon, hotel.lat, hotel.lon),
+        };
+      }),
+    );
+    scored.push(...chunkScored);
+  }
 
   return scored.sort(
     (a, b) => b.score - a.score || a.distanceMeters - b.distanceMeters,

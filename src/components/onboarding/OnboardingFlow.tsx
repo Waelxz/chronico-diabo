@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 type DiabetesType = 't1' | 't2' | 'pre' | 'unknown';
 type Goal = 'glucose' | 'restaurants' | 'travel' | 'emotional';
@@ -31,6 +31,8 @@ const GOAL_OPTIONS: Array<{ value: Goal; label: string }> = [
 
 export function OnboardingFlow() {
   const router = useRouter();
+  const params = useParams<{ locale?: string }>();
+  const homePath = `/${params.locale ?? ''}`;
   const [step, setStep] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [entered, setEntered] = useState(false);
@@ -41,7 +43,7 @@ export function OnboardingFlow() {
 
   useEffect(() => {
     if (window.localStorage.getItem(PROFILE_KEY)) {
-      router.push('/');
+      router.push(homePath);
       return;
     }
     let frame = 0;
@@ -53,7 +55,7 @@ export function OnboardingFlow() {
       window.clearTimeout(timeout);
       window.cancelAnimationFrame(frame);
     };
-  }, [router]);
+  }, [homePath, router]);
 
   async function submitProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,7 +82,7 @@ export function OnboardingFlow() {
     } catch (err) {
       console.warn('[OnboardingFlow] profile sync failed:', err);
     } finally {
-      router.push('/');
+      router.push(homePath);
     }
   }
 

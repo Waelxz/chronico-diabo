@@ -30,11 +30,28 @@ export async function embedText(text: string): Promise<number[]> {
     throw new Error('[embeddings] empty text');
   }
 
-  const raw = await featureExtraction({
-    accessToken: env.HUGGINGFACE_ACCESS_TOKEN,
-    model: EMBEDDING_MODEL,
-    provider: 'hf-inference',
-    inputs: trimmed.slice(0, 2000),
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 4_000);
+
+  const raw = await featureExtraction(
+    {
+      accessToken: env.HUGGINGFACE_ACCESS_TOKEN,
+      model: EMBEDDING_MODEL,
+      provider: 'hf-inference',
+      inputs: trimmed.slice(0, 2000),
+    },
+    { signal: controller.signal },
+  ).catch((err) => {
+    if (timedOut) {
+      throw new Error('[embeddings] HuggingFace request timed out after 4000ms');
+    }
+    throw err;
+  }).finally(() => {
+    clearTimeout(timeout);
   });
 
   // HF can return number[] for a single input (mean-pooled) or number[][] for

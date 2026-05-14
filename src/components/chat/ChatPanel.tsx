@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  memo,
   useCallback,
   useContext,
   useEffect,
@@ -287,6 +288,7 @@ export function ChatInputBar({ className }: { className?: string }) {
     >
       <input
         type="text"
+        aria-label="Ecrire un message a Diabo"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder={hydrating ? 'Chargement de la conversation...' : 'Écris quelque chose...'}
@@ -366,7 +368,11 @@ function MessageRow({
   );
 }
 
-function AssistantRow({ children }: { children: ReactNode }) {
+const AssistantRow = memo(function AssistantRow({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <div className="flex max-w-[88%] items-start gap-2.5 text-zinc-900 dark:text-zinc-100">
       <span className="mt-1.5 grid size-3.5 shrink-0 place-items-center rounded-full bg-emerald-500 text-[7px] font-bold leading-none text-white">
@@ -375,7 +381,7 @@ function AssistantRow({ children }: { children: ReactNode }) {
       <div className="min-w-0 text-base leading-7">{children}</div>
     </div>
   );
-}
+});
 
 function renderMarkdownLite(text: string): ReactNode {
   const lines = text.split('\n');

@@ -1,0 +1,45 @@
+⚠ Slow filesystem detected. The benchmark took 563ms. If C:\Users\waeld\Desktop\IHEC\M1 BIG DATA\DiaboAi\.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2477:13)
+[browser] ./src/components/map/VectorMap.tsx:130:14
+Expected ';', '}' or <eof>
+  128 |           : '';
+  129 |         const popupContent = createPopupContent(pin, scoreText, distText);
+> 130 |             ${distText ? `<p style="margin:0;font-size:11px;color:#71717a">📍 ${distText}...
+      |              ^
+  131 |           </div>`;
+  132 |
+  133 |         const popup = new maplibregl.Popup({
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Client Component Browser:
+    ./src/components/map/VectorMap.tsx [Client Component Browser]
+    ./src/components/restaurants/RestaurantList.tsx [Client Component Browser]
+    ./src/components/restaurants/RestaurantList.tsx [Server Component]
+    ./src/app/[locale]/restaurants/page.tsx [Server Component] 
+    at handleErrors (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13851:21)
+    at processMessage (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13914:21)
+    at WebSocket.handleMessage (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13358:52) (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13851:21)
+[browser] ./src/components/map/VectorMap.tsx:130:14
+Expected ';', '}' or <eof>
+  128 |           : '';
+  129 |         const popupContent = createPopupContent(pin, scoreText, distText);
+> 130 |             ${distText ? `<p style="margin:0;font-size:11px;color:#71717a">📍 ${distText}...
+      |              ^
+  131 |           </div>`;
+  132 |
+  133 |         const popup = new maplibregl.Popup({
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Client Component Browser:
+    ./src/components/map/VectorMap.tsx [Client Component Browser]
+    ./src/components/restaurants/RestaurantList.tsx [Client Component Browser]
+    ./src/components/restaurants/RestaurantList.tsx [Server Component]
+    ./src/app/[locale]/restaurants/page.tsx [Server Component] 
+    at handleErrors (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13851:21)
+    at processMessage (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13914:21)
+    at WebSocket.handleMessage (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13358:52) (file://C:/Users/waeld/Desktop/IHEC/M1 BIG DATA/DiaboAi/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13851:21)

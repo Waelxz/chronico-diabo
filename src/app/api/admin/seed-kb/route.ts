@@ -19,7 +19,12 @@ export const runtime = 'nodejs';
 // HF cold-start + 14 chunk embeddings can push past 30s.
 export const maxDuration = 120;
 
-export async function POST() {
+export async function POST(req: Request) {
+  const adminSecret = process.env.ADMIN_SECRET?.trim();
+  if (adminSecret && req.headers.get('x-admin-secret') !== adminSecret) {
+    return Response.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_KB_SEED !== '1') {
     return Response.json(
       { error: 'disabled_in_production', hint: 'set ALLOW_KB_SEED=1 to enable' },

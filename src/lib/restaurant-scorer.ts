@@ -17,6 +17,7 @@ const ScoreSchema = z.object({
   rationale: z.string().min(12).max(260),
   carb_load_tier: z.enum(['low', 'medium', 'high']),
 });
+const SCORE_CONCURRENCY = 4;
 
 export async function scoreRestaurant(
   poi: RestaurantPoi,
@@ -50,20 +51,25 @@ export async function rankRestaurants({
   maxToScore?: number;
 }): Promise<RankedRestaurant[]> {
   const selected = restaurants.slice(0, maxToScore);
-  const scored = await Promise.all(
-    selected.map(async (restaurant) => {
-      const score = await scoreRestaurant(restaurant);
-      return {
-        ...restaurant,
-        score: score.score,
-        rationale: score.rationale,
-        carb_load_tier: score.carb_load_tier,
-        cacheHit: score.cacheHit,
-        cachedAt: score.cachedAt?.toISOString(),
-        distanceMeters: distanceMeters(userLat, userLon, restaurant.lat, restaurant.lon),
-      };
-    }),
-  );
+  const scored: RankedRestaurant[] = [];
+  for (let index = 0; index < selected.length; index += SCORE_CONCURRENCY) {
+    const chunk = selected.slice(index, index + SCORE_CONCURRENCY);
+    const chunkScored = await Promise.all(
+      chunk.map(async (restaurant) => {
+        const score = await scoreRestaurant(restaurant);
+        return {
+          ...restaurant,
+          score: score.score,
+          rationale: score.rationale,
+          carb_load_tier: score.carb_load_tier,
+          cacheHit: score.cacheHit,
+          cachedAt: score.cachedAt?.toISOString(),
+          distanceMeters: distanceMeters(userLat, userLon, restaurant.lat, restaurant.lon),
+        };
+      }),
+    );
+    scored.push(...chunkScored);
+  }
 
   return scored.sort(
     (a, b) => b.score - a.score || a.distanceMeters - b.distanceMeters,

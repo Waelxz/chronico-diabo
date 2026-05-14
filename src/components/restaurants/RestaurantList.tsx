@@ -67,7 +67,7 @@ export function RestaurantList() {
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       void loadRestaurants();
-    }, 0);
+    }, 400);
     return () => window.clearTimeout(timeout);
   }, [loadRestaurants]);
 

@@ -61,7 +61,7 @@ export function HotelList() {
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       void loadHotels();
-    }, 0);
+    }, 400);
     return () => window.clearTimeout(timeout);
   }, [loadHotels]);
 

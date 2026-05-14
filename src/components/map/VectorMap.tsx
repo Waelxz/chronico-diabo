@@ -126,24 +126,13 @@ export function VectorMap({
             ? `${pin.distanceMeters} m`
             : `${(pin.distanceMeters / 1000).toFixed(1)} km`
           : '';
-        const popupHTML = `
-          <div style="font-family:system-ui,sans-serif;min-width:160px;padding:4px 0">
-            <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#18181b;line-height:1.3">${pin.label}</p>
-            ${pin.cuisine ? `<p style="margin:0 0 6px;font-size:11px;color:#52525b">${pin.cuisine}</p>` : ''}
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-              <div style="flex:1;height:6px;border-radius:9999px;background:#e4e4e7;overflow:hidden">
-                <div style="height:100%;width:${pin.score}%;background:${scoreColor(pin.score)};border-radius:9999px"></div>
-              </div>
-              <span style="font-size:11px;font-weight:700;color:${scoreColor(pin.score)}">${scoreText}/10</span>
-            </div>
-            ${distText ? `<p style="margin:0;font-size:11px;color:#71717a">📍 ${distText}</p>` : ''}
-          </div>`;
+        const popupContent = createPopupContent(pin, scoreText, distText);
 
         const popup = new maplibregl.Popup({
           offset: 20,
           closeButton: true,
           maxWidth: '220px',
-        }).setHTML(popupHTML);
+        }).setDOMContent(popupContent);
 
         element.addEventListener('click', () => {
           onSelect?.(pin.id);
@@ -176,4 +165,73 @@ function scoreColor(score: number): string {
   if (score < 40) return '#ef4444';
   if (score <= 70) return '#f59e0b';
   return '#10b981';
+}
+
+function createPopupContent(
+  pin: MapPin,
+  scoreText: string,
+  distText: string,
+): HTMLElement {
+  const root = document.createElement('div');
+  root.style.fontFamily = 'system-ui,sans-serif';
+  root.style.minWidth = '160px';
+  root.style.padding = '4px 0';
+
+  const title = document.createElement('p');
+  title.style.margin = '0 0 4px';
+  title.style.fontSize = '13px';
+  title.style.fontWeight = '700';
+  title.style.color = '#18181b';
+  title.style.lineHeight = '1.3';
+  title.textContent = pin.label;
+  root.appendChild(title);
+
+  if (pin.cuisine) {
+    const cuisine = document.createElement('p');
+    cuisine.style.margin = '0 0 6px';
+    cuisine.style.fontSize = '11px';
+    cuisine.style.color = '#52525b';
+    cuisine.textContent = pin.cuisine;
+    root.appendChild(cuisine);
+  }
+
+  const scoreRow = document.createElement('div');
+  scoreRow.style.display = 'flex';
+  scoreRow.style.alignItems = 'center';
+  scoreRow.style.gap = '6px';
+  scoreRow.style.marginBottom = '6px';
+
+  const track = document.createElement('div');
+  track.style.flex = '1';
+  track.style.height = '6px';
+  track.style.borderRadius = '9999px';
+  track.style.background = '#e4e4e7';
+  track.style.overflow = 'hidden';
+
+  const fill = document.createElement('div');
+  fill.style.height = '100%';
+  fill.style.width = `${pin.score}%`;
+  fill.style.background = scoreColor(pin.score);
+  fill.style.borderRadius = '9999px';
+  track.appendChild(fill);
+  scoreRow.appendChild(track);
+
+  const score = document.createElement('span');
+  score.style.fontSize = '11px';
+  score.style.fontWeight = '700';
+  score.style.color = scoreColor(pin.score);
+  score.textContent = `${scoreText}/10`;
+  scoreRow.appendChild(score);
+  root.appendChild(scoreRow);
+
+  if (distText) {
+    const distance = document.createElement('p');
+    distance.style.margin = '0';
+    distance.style.fontSize = '11px';
+    distance.style.color = '#71717a';
+    distance.textContent = `Distance : ${distText}`;
+    root.appendChild(distance);
+  }
+
+  return root;
 }

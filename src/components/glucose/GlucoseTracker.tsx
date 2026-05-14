@@ -647,14 +647,16 @@ function toChartPoint(
   displayUnit: GlucoseUnit,
 ): ChartPoint {
   const displayValue = convertValue(log.value, log.unit, displayUnit);
+  const mgValue = convertValue(log.value, log.unit, 'mg/dL');
+  const mmolValue = convertValue(log.value, log.unit, 'mmol/L');
   return {
     id: log._id ?? `${log.measuredAt}-${index}`,
     label: dateFormatter.format(new Date(log.measuredAt)),
     originalValue: log.value,
     originalUnit: log.unit,
     displayValue,
-    mgSeries: log.unit === 'mg/dL' ? displayValue : null,
-    mmolSeries: log.unit === 'mmol/L' ? displayValue : null,
+    mgSeries: log.unit === 'mg/dL' ? mgValue : null,
+    mmolSeries: log.unit === 'mmol/L' ? mmolValue : null,
     context: log.context,
     note: log.note,
   };

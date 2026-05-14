@@ -309,31 +309,48 @@ function parseOnboardingProfileHeader(
   if (!value) return null;
   try {
     const parsed = onboardingProfileSchema.safeParse(JSON.parse(value));
-    return parsed.success ? parsed.data : null;
+    return parsed.success ? sanitizeOnboardingProfile(parsed.data) : null;
   } catch {
     return null;
   }
 }
 
+function sanitizePromptString(value: string): string {
+  return value.slice(0, 100).replace(/[<>{}|\\]/g, '');
+}
+
+function sanitizeOnboardingProfile(profile: OnboardingProfile): OnboardingProfile {
+  return {
+    diabetesType: profile.diabetesType
+      ? (sanitizePromptString(profile.diabetesType) as OnboardingProfile['diabetesType'])
+      : undefined,
+    goal: profile.goal
+      ? (sanitizePromptString(profile.goal) as OnboardingProfile['goal'])
+      : undefined,
+    name: profile.name ? sanitizePromptString(profile.name) : undefined,
+  };
+}
+
 function buildOnboardingProfileBlock(profile: OnboardingProfile | null): string {
   if (!profile) return '';
+  const safeProfile = sanitizeOnboardingProfile(profile);
   const lines: string[] = [];
-  if (profile.name) lines.push(`L'utilisateur s'appelle ${profile.name}.`);
-  if (profile.diabetesType === 't1') {
+  if (safeProfile.name) lines.push(`L'utilisateur s'appelle ${safeProfile.name}.`);
+  if (safeProfile.diabetesType === 't1') {
     lines.push('Il vit avec un diabète de type 1.');
   }
-  if (profile.diabetesType === 't2') {
+  if (safeProfile.diabetesType === 't2') {
     lines.push('Il vit avec un diabète de type 2.');
   }
-  if (profile.diabetesType === 'pre') {
+  if (safeProfile.diabetesType === 'pre') {
     lines.push('Il est en situation de pré-diabète.');
   }
-  if (profile.goal === 'emotional') {
+  if (safeProfile.goal === 'emotional') {
     lines.push(
       "Son objectif principal est le soutien émotionnel. Priorise l'empathie.",
     );
   }
-  if (profile.goal === 'glucose') {
+  if (safeProfile.goal === 'glucose') {
     lines.push(
       'Son objectif principal est la gestion de la glycémie. Priorise les conseils pratiques.',
     );
