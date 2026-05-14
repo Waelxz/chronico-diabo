@@ -46,11 +46,11 @@ export function Sidebar({ session }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 1024px)');
-    const sync = () => setExpanded(media.matches);
-    sync();
-    media.addEventListener('change', sync);
-    return () => media.removeEventListener('change', sync);
+    const saved = window.localStorage.getItem('diabo_sidebar_expanded');
+    if (saved === 'true') {
+      setExpanded(true);
+      document.body.classList.add('sidebar-expanded');
+    }
   }, []);
 
   useEffect(() => {
@@ -164,7 +164,12 @@ export function Sidebar({ session }: SidebarProps) {
 
           <button
             type="button"
-            onClick={() => setExpanded((value) => !value)}
+            onClick={() => setExpanded((value) => {
+              const next = !value;
+              window.localStorage.setItem('diabo_sidebar_expanded', String(next));
+              document.body.classList.toggle('sidebar-expanded', next);
+              return next;
+            })}
             className="hidden h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 lg:inline-flex"
             aria-label={expanded ? 'Réduire la navigation' : 'Déployer la navigation'}
             aria-expanded={expanded}

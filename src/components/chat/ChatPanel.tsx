@@ -238,7 +238,7 @@ export function ChatMessages({ className }: { className?: string }) {
 
   return (
     <div
-      className={`flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 pt-4 text-sm ${className ?? ''}`}
+      className={`flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 pt-4 text-base ${className ?? ''}`}
       aria-live="polite"
     >
       {messages.length === 0 ? (
@@ -352,7 +352,7 @@ function MessageRow({
   if (role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[72%] rounded-2xl rounded-br-none bg-zinc-800 px-4 py-2.5 text-sm leading-6 text-white">
+        <div className="max-w-[78%] rounded-2xl rounded-br-none bg-zinc-800 px-4 py-3 text-base leading-7 text-white">
           {text}
         </div>
       </div>
@@ -368,11 +368,11 @@ function MessageRow({
 
 function AssistantRow({ children }: { children: ReactNode }) {
   return (
-    <div className="flex max-w-[82%] items-start gap-2 text-zinc-900 dark:text-zinc-100">
-      <span className="mt-1 grid size-3 shrink-0 place-items-center rounded-full bg-emerald-500 text-[7px] font-bold leading-none text-white">
+    <div className="flex max-w-[88%] items-start gap-2.5 text-zinc-900 dark:text-zinc-100">
+      <span className="mt-1.5 grid size-3.5 shrink-0 place-items-center rounded-full bg-emerald-500 text-[7px] font-bold leading-none text-white">
         D
       </span>
-      <div className="min-w-0 text-sm leading-6">{children}</div>
+      <div className="min-w-0 text-base leading-7">{children}</div>
     </div>
   );
 }

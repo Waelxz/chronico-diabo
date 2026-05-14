@@ -33,7 +33,7 @@ export default async function HomePage() {
               </div>
             ) : null}
 
-            <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4 pb-4">
+            <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 pb-4">
               <div className="flex shrink-0 justify-center pb-0 pt-2">
                 <div className="size-[300px] sm:size-[340px] lg:size-[380px]">
                   <HomeDiaboStage />
