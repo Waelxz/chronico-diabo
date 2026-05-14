@@ -8,9 +8,10 @@ import {
   type UIMessage,
 } from 'ai';
 import { z } from 'zod';
+import { auth } from '@/lib/auth';
 import { getChatModel } from '@/lib/llm';
 import { DIABO_PERSONA_FR } from '@/lib/diabo/persona';
-import { appendMessage, touchChat } from '@/lib/db/chats';
+import { appendMessage, touchChat, userOwnsChat } from '@/lib/db/chats';
 import { getProfile, type CompanionProfile } from '@/lib/db/companion';
 import { searchKb, type KbChunkResult } from '@/lib/db/kb';
 import { findHotelsForChat } from '@/lib/hotels/tool';
@@ -40,7 +41,7 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const RESTAURANT_TOOL_INSTRUCTIONS =
   "Si l'utilisateur demande des restaurants, appelle findRestaurants. Réponds ensuite en français avec les 3 meilleurs choix, leur score, le niveau de glucides et une phrase de prudence. Si la position est approximative, dis-le brièvement et propose de partager une localisation plus précise. Si l'utilisateur demande des hôtels ou hébergements, appelle findHotels.";
 
-type ChatRequestBody = { messages: UIMessage[] };
+type ChatRequestBody = { messages: UIMessage[]; chatId?: string | null };
 
 function extractText(message: UIMessage | undefined): string {
   if (!message) return '';
@@ -63,16 +64,33 @@ export async function POST(req: Request) {
     return new Response('messages must be a non-empty array', { status: 400 });
   }
 
-  // Resolve / mint chatId.
+  // Resolve / mint chatId. Signed-in users can choose a stored conversation;
+  // anonymous users keep the original rolling cookie thread.
+  const session = await auth();
+  const userId = session?.user?.id;
   const cookieStore = await cookies();
   const existingChatId = cookieStore.get(COOKIE_NAME)?.value;
-  const chatId = existingChatId ?? new ObjectId().toHexString();
-  const isNewChat = !existingChatId;
+  let chatId = existingChatId ?? new ObjectId().toHexString();
+  let isNewChat = !existingChatId;
+
+  if (userId) {
+    if (body.chatId) {
+      const ownsChat = await userOwnsChat(userId, body.chatId);
+      if (!ownsChat) {
+        return new Response('Conversation introuvable', { status: 404 });
+      }
+      chatId = body.chatId;
+      isNewChat = false;
+    } else {
+      chatId = new ObjectId().toHexString();
+      isNewChat = false;
+    }
+  }
 
   // Persist the latest user turn (fire-and-forget).
   const latest = messages[messages.length - 1];
   const userText = latest?.role === 'user' ? extractText(latest) : '';
-  void touchChat(chatId).catch((err) =>
+  void touchChat(chatId, userId).catch((err) =>
     console.error('[chat] touchChat failed:', err),
   );
   if (userText) {
@@ -185,7 +203,8 @@ export async function POST(req: Request) {
   });
 
   const headers: Record<string, string> = {};
-  if (isNewChat) {
+  headers['x-diabo-chat-id'] = chatId;
+  if (!userId && isNewChat) {
     headers['Set-Cookie'] =
       `${COOKIE_NAME}=${chatId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${COOKIE_MAX_AGE}`;
   }

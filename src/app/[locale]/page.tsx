@@ -1,8 +1,14 @@
+import { getTranslations } from 'next-intl/server';
 import { ChatPanel } from '@/components/chat/ChatPanel';
+import { ConversationSidebar } from '@/components/chat/ConversationSidebar';
 import { DiaboProvider } from '@/components/diabo/DiaboProvider';
 import { DiaboStage } from '@/components/diabo/DiaboStage';
+import { auth } from '@/lib/auth';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [t, session] = await Promise.all([getTranslations('home'), auth()]);
+  const signedIn = Boolean(session?.user?.id);
+
   return (
     <main className="flex flex-1 flex-col bg-gradient-to-b from-emerald-50 via-white to-sky-50 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
       <DiaboProvider>
@@ -12,20 +18,27 @@ export default function HomePage() {
               Chronico
             </p>
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
-              Diabo
+              {t('title')}
             </h1>
             <p className="max-w-md text-base text-zinc-600 dark:text-zinc-400">
-              Votre compagnon IA empathique pour vivre avec le diabète au quotidien.
+              {t('subtitle')}
             </p>
           </header>
 
-          <div className="grid flex-1 grid-cols-1 gap-8 lg:grid-cols-[1fr_1.05fr] lg:items-stretch">
+          <div
+            className={`grid flex-1 grid-cols-1 gap-8 ${
+              signedIn
+                ? 'lg:grid-cols-[18rem_0.9fr_1.05fr]'
+                : 'lg:grid-cols-[1fr_1.05fr]'
+            } lg:items-stretch`}
+          >
+            {signedIn ? <ConversationSidebar /> : null}
             <div className="flex items-center justify-center">
               <div className="relative aspect-square w-full max-w-md">
                 <DiaboStage className="absolute inset-0 h-full w-full" />
               </div>
             </div>
-            <ChatPanel className="w-full" />
+            <ChatPanel className="w-full" signedIn={signedIn} />
           </div>
 
           <footer className="flex flex-col items-center gap-2 text-center">

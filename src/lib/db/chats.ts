@@ -15,6 +15,7 @@ import { getDb } from '../mongodb';
 
 export type ChatDoc = {
   _id: string;
+  userId?: string;
   createdAt: Date;
   updatedAt: Date;
   lastUserMessage?: string;
@@ -42,13 +43,15 @@ async function messagesCol(): Promise<Collection<MessageDoc> | null> {
 }
 
 /** Upserts a chat row, bumps `updatedAt`, returns the chatId actually used. */
-export async function touchChat(chatId: string): Promise<string> {
+export async function touchChat(chatId: string, userId?: string): Promise<string> {
   const col = await chatsCol();
   if (!col) return chatId;
   const now = new Date();
+  const set: Partial<ChatDoc> = { updatedAt: now };
+  if (userId) set.userId = userId;
   await col.updateOne(
     { _id: chatId },
-    { $set: { updatedAt: now }, $setOnInsert: { _id: chatId, createdAt: now } },
+    { $set: set, $setOnInsert: { _id: chatId, createdAt: now } },
     { upsert: true },
   );
   return chatId;
@@ -82,6 +85,25 @@ export async function appendMessage(
 }
 
 /** Convenience for debugging / future history view. Sorted oldest → newest. */
+export async function listChatsForUser(
+  userId: string,
+  limit = 30,
+): Promise<ChatDoc[]> {
+  const col = await chatsCol();
+  if (!col) return [];
+  return col.find({ userId }).sort({ updatedAt: -1 }).limit(limit).toArray();
+}
+
+export async function userOwnsChat(
+  userId: string,
+  chatId: string,
+): Promise<boolean> {
+  const col = await chatsCol();
+  if (!col) return false;
+  const chat = await col.findOne({ _id: chatId, userId });
+  return Boolean(chat);
+}
+
 export async function listMessages(chatId: string, limit = 100): Promise<MessageDoc[]> {
   const col = await messagesCol();
   if (!col) return [];

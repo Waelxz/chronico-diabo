@@ -1,6 +1,13 @@
-import { RestaurantList } from '@/components/restaurants/RestaurantList';
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
+import { GlucoseTracker } from '@/components/glucose/GlucoseTracker';
 
-export default function RestaurantsPage() {
+export const metadata: Metadata = {
+  title: 'Suivi glycémie · Diabo',
+};
+
+export default async function GlucosePage() {
+  const t = await getTranslations('glucose');
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -9,14 +16,13 @@ export default function RestaurantsPage() {
             Chronico Diabo
           </p>
           <h1 className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
-            Restaurants adaptés au diabète
+            {t('title')}
           </h1>
           <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-            Explorez les restaurants proches, classés selon les options probables
-            pour une alimentation plus stable en glucides.
+            {t('description')}
           </p>
         </header>
-        <RestaurantList />
+        <GlucoseTracker />
       </div>
     </main>
   );

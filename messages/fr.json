@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "home": "Diabo",
+    "restaurants": "Restaurants",
+    "hotels": "Hôtels",
+    "glucose": "Glycémie",
+    "profile": "Profil",
+    "reminders": "Rappels"
+  },
+  "home": {
+    "title": "Diabo",
+    "subtitle": "Votre compagnon IA empathique pour vivre avec le diabète au quotidien."
+  },
+  "restaurants": {
+    "title": "Restaurants adaptés au diabète",
+    "description": "Explorez les restaurants proches, classés selon les options probables pour une alimentation plus stable en glucides."
+  },
+  "hotels": {
+    "title": "Hôtels adaptés au diabète",
+    "description": "Comparez des hébergements proches avec une lecture simple de l’accessibilité et du niveau de confort pour mieux préparer vos déplacements."
+  },
+  "glucose": {
+    "title": "Suivi de glycémie",
+    "description": "Enregistrez vos mesures, visualisez la tendance récente et demandez un résumé hebdomadaire en français."
+  },
+  "onboarding": {
+    "title": "Personnaliser Diabo",
+    "description": "Ajoutez quelques préférences pour aider Diabo à répondre avec plus de contexte, sans remplacer l'avis de votre médecin."
+  },
+  "reminders": {
+    "title": "Rappels",
+    "description": "Planifiez vos rappels de traitement, glycémie, hydratation ou activité et activez les notifications du navigateur."
+  }
+}

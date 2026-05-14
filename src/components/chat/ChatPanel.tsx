@@ -11,6 +11,7 @@ import type {
 
 type ChatPanelProps = {
   className?: string;
+  signedIn?: boolean;
 };
 
 /**
@@ -22,10 +23,28 @@ type ChatPanelProps = {
  *   thinking, `streaming` → talking, otherwise idle.
  * - All copy is in French (Maghreb francophone audience per AGENTS.md).
  */
-export function ChatPanel({ className }: ChatPanelProps) {
+export function ChatPanel({ className, signedIn = false }: ChatPanelProps) {
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: '/api/chat' }),
-    [],
+    () =>
+      new DefaultChatTransport({
+        api: '/api/chat',
+        body: signedIn ? { chatId: activeChatId } : undefined,
+        fetch: async (input, init) => {
+          const response = await fetch(input, init);
+          const nextChatId = response.headers.get('x-diabo-chat-id');
+          if (signedIn && nextChatId) {
+            setActiveChatId(nextChatId);
+            window.dispatchEvent(
+              new CustomEvent('diabo:active-chat-changed', {
+                detail: { chatId: nextChatId },
+              }),
+            );
+          }
+          return response;
+        },
+      }),
+    [activeChatId, signedIn],
   );
 
   const { messages, sendMessage, setMessages, status, error, stop, regenerate } =
@@ -36,12 +55,34 @@ export function ChatPanel({ className }: ChatPanelProps) {
   const { setIsThinking, setIsTalking, applyEmotion } = useDiabo();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (!signedIn) return;
+    const handleSelect = (event: Event) => {
+      const detail = (event as CustomEvent<{ chatId: string | null }>).detail;
+      setActiveChatId(detail.chatId);
+    };
+    window.addEventListener('diabo:chat-selected', handleSelect);
+    return () => {
+      window.removeEventListener('diabo:chat-selected', handleSelect);
+    };
+  }, [signedIn]);
+
   // Hydrate from server on mount so a page refresh keeps the conversation.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (signedIn && !activeChatId) {
+        setMessages([]);
+        setHydrating(false);
+        return;
+      }
       try {
-        const res = await fetch('/api/chats/current/messages', {
+        setHydrating(true);
+        const endpoint =
+          signedIn && activeChatId
+            ? `/api/chats/${activeChatId}/messages`
+            : '/api/chats/current/messages';
+        const res = await fetch(endpoint, {
           credentials: 'same-origin',
         });
         if (!res.ok) return;
@@ -68,7 +109,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [setMessages]);
+  }, [activeChatId, setMessages, signedIn]);
 
   // Drive Diabo lifecycle from chat status.
   useEffect(() => {

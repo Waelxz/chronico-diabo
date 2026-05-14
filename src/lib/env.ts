@@ -22,6 +22,16 @@ const ServerEnvSchema = z.object({
   MONGODB_URI: z.string().min(1).optional(),
   MONGODB_DB: z.string().default('chronico_diabo'),
 
+  // Auth.js / Google OAuth
+  AUTH_SECRET: z.string().min(1).optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+
+  // Web Push (VAPID)
+  VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  VAPID_MAILTO: z.string().min(1).optional(),
+
   // App
   APP_URL: z.string().url().default('http://localhost:3000'),
 });

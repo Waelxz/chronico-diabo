@@ -40,8 +40,8 @@ src/
       chats/current/messages/     GET  → message history of the cookie session
       emotion/                    POST → HF sentiment classification (FR/AR)
       admin/seed-kb/              POST → idempotent KB seeding (dev-only)
-    layout.tsx                    Root layout, French metadata, Geist fonts
-    page.tsx                      Landing: DiaboProvider + DiaboStage + ChatPanel
+    [locale]/layout.tsx           Localized root layout, FR/AR metadata shell, Geist fonts
+    [locale]/page.tsx             Landing: DiaboProvider + DiaboStage + ChatPanel
   components/
     chat/           ChatPanel client component (useChat + history + emotion wiring)
     diabo/          DiaboProvider context + DiaboStage (boolean + number Rive channels)
@@ -99,9 +99,9 @@ Requirements: **Node 20.9+** (Next.js 16 requirement; we test on Node 24).
 | 3 | RAG over diabetes KB (Atlas Vector Search, 14 FR seed chunks) | 🟢 done |
 | 4 | Restaurants module (Overpass + LLM scoring + Leaflet) + KB citation chips | 🟢 done |
 | 5 | Hotels + travel module | 🟢 done |
-| 6 | Glucose tracker (manual) — log/chart/weekly LLM summary + PDF export | 🟢 done |
-| 7 | Auth + reminders + Web Push + multi-conv sidebar + companion memory | 🟢 done |
-| 8 | Multilingual FR + AR (RTL) | ⚪ |
+| 6 | Glucose tracker (manual) — log/chart/weekly LLM summary + CSV export | 🟢 done |
+| 7 | Auth.js Google sign-in + reminders + Web Push + signed-in multi-conversation sidebar | 🟢 done |
+| 8 | Multilingual FR + AR (RTL) with next-intl localized routing | 🟢 done |
 | 9 | Onboarding (intake) + design polish | ⚪ |
 | 10 | Production deploy + report + demo | ⚪ |
 

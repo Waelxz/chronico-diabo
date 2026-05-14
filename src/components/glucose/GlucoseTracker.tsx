@@ -69,6 +69,30 @@ const listDateFormatter = new Intl.DateTimeFormat('fr-FR', {
   timeStyle: 'short',
 });
 
+export function exportCsv(logs: ApiGlucoseLog[]): void {
+  const header = ['Date', 'Valeur', 'Unité', 'Contexte', 'Note'];
+  const rows = logs.map((log) => [
+    new Date(log.measuredAt).toISOString(),
+    String(log.value),
+    log.unit,
+    CONTEXT_LABELS[log.context],
+    log.note ?? '',
+  ]);
+  const csv = [header, ...rows]
+    .map((row) => row.map(escapeCsvCell).join(','))
+    .join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const today = new Date().toISOString().slice(0, 10);
+  link.href = href;
+  link.download = `diabo-glycemie-${today}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
+}
+
 export function GlucoseTracker() {
   const [logs, setLogs] = useState<ApiGlucoseLog[]>([]);
   const [value, setValue] = useState('');
@@ -365,6 +389,14 @@ export function GlucoseTracker() {
                 {' '}sur 7 jours.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => exportCsv(logs)}
+              disabled={logs.length === 0}
+              className="shrink-0 rounded-md border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+            >
+              Exporter CSV
+            </button>
           </div>
           <button
             type="button"
@@ -641,6 +673,11 @@ function convertValue(
 function formatValue(value: number, unit: GlucoseUnit): string {
   if (unit === 'mmol/L') return value.toFixed(1).replace('.', ',');
   return String(Math.round(value));
+}
+
+function escapeCsvCell(value: string): string {
+  if (!/[",\r\n]/.test(value)) return value;
+  return `"${value.replaceAll('"', '""')}"`;
 }
 
 function rangeLabel(log: ApiGlucoseLog): string {
