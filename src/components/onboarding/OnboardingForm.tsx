@@ -4,9 +4,16 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type DiabetesType = '1' | '2' | 'gestational' | 'prediabetes' | 'other';
+type Gender = 'male' | 'female' | 'other';
 
 type CompanionProfilePayload = {
   name?: string;
+  birthDate?: string;
+  gender?: Gender;
+  heightCm?: number;
+  weightKg?: number;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
   diabetesType?: DiabetesType;
   treatment?: string;
   goals?: string[];
@@ -24,6 +31,12 @@ const DIABETES_TYPES: Array<{ value: DiabetesType; label: string }> = [
   { value: '2', label: 'Type 2' },
   { value: 'gestational', label: 'Gestationnel' },
   { value: 'prediabetes', label: 'Prédiabète' },
+  { value: 'other', label: 'Autre' },
+];
+
+const GENDERS: Array<{ value: Gender; label: string }> = [
+  { value: 'male', label: 'Homme' },
+  { value: 'female', label: 'Femme' },
   { value: 'other', label: 'Autre' },
 ];
 
@@ -46,6 +59,12 @@ const RESTRICTIONS = [
 export function OnboardingForm() {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [gender, setGender] = useState<Gender | ''>('');
+  const [heightCm, setHeightCm] = useState('');
+  const [weightKg, setWeightKg] = useState('');
+  const [emergencyContactName, setEmergencyContactName] = useState('');
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [diabetesType, setDiabetesType] = useState<DiabetesType | ''>('');
   const [city, setCity] = useState('');
   const [treatment, setTreatment] = useState('');
@@ -74,6 +93,12 @@ export function OnboardingForm() {
       }
       if (data.profile) {
         setName(data.profile.name ?? '');
+        setBirthDate(data.profile.birthDate ?? '');
+        setGender(data.profile.gender ?? '');
+        setHeightCm(data.profile.heightCm?.toString() ?? '');
+        setWeightKg(data.profile.weightKg?.toString() ?? '');
+        setEmergencyContactName(data.profile.emergencyContactName ?? '');
+        setEmergencyContactPhone(data.profile.emergencyContactPhone ?? '');
         setDiabetesType(data.profile.diabetesType ?? '');
         setCity(data.profile.city ?? '');
         setTreatment(data.profile.treatment ?? '');
@@ -106,6 +131,12 @@ export function OnboardingForm() {
 
     const payload: CompanionProfilePayload = {
       name: name.trim() || undefined,
+      birthDate: birthDate || undefined,
+      gender: gender || undefined,
+      heightCm: optionalNumber(heightCm),
+      weightKg: optionalNumber(weightKg),
+      emergencyContactName: emergencyContactName.trim() || undefined,
+      emergencyContactPhone: emergencyContactPhone.trim() || undefined,
       diabetesType: diabetesType || undefined,
       city: city.trim() || undefined,
       treatment: treatment || undefined,
@@ -127,6 +158,12 @@ export function OnboardingForm() {
         'diabo_profile',
         JSON.stringify({
           name: name.trim(),
+          birthDate,
+          gender,
+          heightCm: optionalNumber(heightCm),
+          weightKg: optionalNumber(weightKg),
+          emergencyContactName: emergencyContactName.trim(),
+          emergencyContactPhone: emergencyContactPhone.trim(),
           diabetesType: mapType(diabetesType),
           goal: mapGoal(goals.join(' ')),
         }),
@@ -226,6 +263,63 @@ export function OnboardingForm() {
                 className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
               />
             </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Date de naissance" htmlFor="profile-birth-date">
+                <input
+                  id="profile-birth-date"
+                  value={birthDate}
+                  onChange={(event) => setBirthDate(event.target.value)}
+                  type="date"
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
+              </Field>
+              <Field label="Genre" htmlFor="profile-gender">
+                <select
+                  id="profile-gender"
+                  value={gender}
+                  onChange={(event) =>
+                    setGender(event.target.value as Gender | '')
+                  }
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                >
+                  <option value="">Non précisé</option>
+                  {GENDERS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Taille (cm)" htmlFor="profile-height">
+                <input
+                  id="profile-height"
+                  value={heightCm}
+                  onChange={(event) => setHeightCm(event.target.value)}
+                  type="number"
+                  inputMode="numeric"
+                  min={80}
+                  max={250}
+                  placeholder="170"
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
+              </Field>
+              <Field label="Poids (kg)" htmlFor="profile-weight">
+                <input
+                  id="profile-weight"
+                  value={weightKg}
+                  onChange={(event) => setWeightKg(event.target.value)}
+                  type="number"
+                  inputMode="decimal"
+                  min={20}
+                  max={350}
+                  step="0.1"
+                  placeholder="75"
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
+              </Field>
+            </div>
             <Field label="Type de diabète" htmlFor="profile-diabetes-type">
               <select
                 id="profile-diabetes-type"
@@ -289,6 +383,40 @@ export function OnboardingForm() {
               eyebrow="Étape 3"
               title="Tes préférences alimentaires"
             />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Contact d'urgence"
+                htmlFor="profile-emergency-contact-name"
+              >
+                <input
+                  id="profile-emergency-contact-name"
+                  value={emergencyContactName}
+                  onChange={(event) =>
+                    setEmergencyContactName(event.target.value)
+                  }
+                  maxLength={120}
+                  placeholder="Nom du contact"
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
+              </Field>
+              <Field
+                label="Téléphone d'urgence"
+                htmlFor="profile-emergency-contact-phone"
+              >
+                <input
+                  id="profile-emergency-contact-phone"
+                  value={emergencyContactPhone}
+                  onChange={(event) =>
+                    setEmergencyContactPhone(event.target.value)
+                  }
+                  maxLength={40}
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+216 ..."
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
+              </Field>
+            </div>
             <CheckboxGroup
               legend="Restrictions"
               options={RESTRICTIONS}
@@ -416,6 +544,12 @@ function mapType(value: string | undefined): 't1' | 't2' | 'pre' | 'unknown' {
   if (value === '2') return 't2';
   if (value === 'pre' || value === 'prediabetes') return 'pre';
   return 'unknown';
+}
+
+function optionalNumber(value: string): number | undefined {
+  if (!value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function mapGoal(

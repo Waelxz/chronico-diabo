@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState, type FormEvent } from 'react';
+import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { Link } from '@/i18n/navigation';
 import { signInWithCredentials, signInWithGoogle } from '@/lib/auth-actions';
 
@@ -52,11 +53,14 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
       <section className="diabo-surface w-full max-w-md p-6">
         <div className="space-y-2 text-center">
           <p className="text-xs font-medium uppercase text-emerald-700 dark:text-emerald-400">
-            Diabo
+            Chronico
           </p>
           <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-            Connexion à Diabo
+            Connexion Chronico
           </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Votre compte Chronico vous donne accès à Diabo et nos futurs services.
+          </p>
         </div>
 
         {error ? (
@@ -67,7 +71,11 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
 
         <form action={signInWithGoogle} className="mt-6">
           <input type="hidden" name="callbackUrl" value={callbackUrl} />
-          <button type="submit" className="diabo-button-secondary w-full">
+          <button
+            type="submit"
+            className="diabo-button-secondary inline-flex w-full items-center justify-center gap-2"
+          >
+            <GoogleIcon className="size-5 shrink-0" />
             Continuer avec Google
           </button>
         </form>

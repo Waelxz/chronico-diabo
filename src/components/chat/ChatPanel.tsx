@@ -22,6 +22,7 @@ type ChatPanelProps = {
   children?: ReactNode;
   className?: string;
   signedIn?: boolean;
+  userId?: string;
 };
 
 type ChatMessage = ReturnType<typeof useChat>['messages'][number];
@@ -53,13 +54,15 @@ export function ChatPanel({
   children,
   className,
   signedIn = false,
+  userId,
 }: ChatPanelProps) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const translatedHydrationSkipRef = useRef<string | null>(null);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: '/api/chat',
-        body: signedIn ? { chatId: activeChatId } : undefined,
+        body: signedIn ? { chatId: activeChatId, userId } : undefined,
         headers: () => ({
           'x-diabo-profile':
             typeof window !== 'undefined'
@@ -84,7 +87,7 @@ export function ChatPanel({
           return response;
         },
       }),
-    [activeChatId, signedIn],
+    [activeChatId, signedIn, userId],
   );
 
   const { messages, sendMessage, setMessages, status, error, stop, regenerate } =
@@ -101,17 +104,41 @@ export function ChatPanel({
       const detail = (event as CustomEvent<{ chatId: string | null }>).detail;
       setActiveChatId(detail.chatId);
     };
+    const handleTranslated = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          chatId: string;
+          messages: Parameters<typeof setMessages>[0];
+        }>
+      ).detail;
+      if (!detail.chatId) return;
+      translatedHydrationSkipRef.current = detail.chatId;
+      setActiveChatId(detail.chatId);
+      setMessages(detail.messages);
+      setHydrating(false);
+    };
     window.addEventListener('diabo:chat-selected', handleSelect);
+    window.addEventListener('diabo:chat-translated', handleTranslated);
     return () => {
       window.removeEventListener('diabo:chat-selected', handleSelect);
+      window.removeEventListener('diabo:chat-translated', handleTranslated);
     };
-  }, [signedIn]);
+  }, [setMessages, signedIn]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (signedIn && !activeChatId) {
         setMessages([]);
+        setHydrating(false);
+        return;
+      }
+      if (
+        signedIn &&
+        activeChatId &&
+        translatedHydrationSkipRef.current === activeChatId
+      ) {
+        translatedHydrationSkipRef.current = null;
         setHydrating(false);
         return;
       }

@@ -10,10 +10,11 @@ import { auth } from '@/lib/auth';
 
 export default async function HomePage() {
   const [session, t] = await Promise.all([auth(), getTranslations('home')]);
-  const signedIn = Boolean(session?.user?.id);
+  const userId = session?.user?.id;
+  const signedIn = Boolean(userId);
 
   return (
-    <ChatPanel signedIn={signedIn}>
+    <ChatPanel signedIn={signedIn} userId={userId}>
       <main className="flex h-dvh flex-col bg-gradient-to-b from-emerald-50 via-white to-sky-50 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
         <header className="px-4 pb-1 pt-4 text-center">
           <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">

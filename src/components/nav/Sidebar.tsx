@@ -21,7 +21,7 @@ import {
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { CommandPalette } from '@/components/nav/CommandPalette';
 import { Link, usePathname } from '@/i18n/navigation';
-import { signInWithGoogle, signOutCurrentUser } from '@/lib/auth-actions';
+import { signOutCurrentUser } from '@/lib/auth-actions';
 
 type SidebarProps = {
   session: Session | null;
@@ -221,6 +221,13 @@ export function Sidebar({ session }: SidebarProps) {
           {session?.user ? (
             <div className="space-y-2">
               <p
+                className={`px-1 text-[0.65rem] font-semibold uppercase tracking-wide text-emerald-400 ${
+                  compact ? 'lg:sr-only' : ''
+                }`}
+              >
+                Compte Chronico
+              </p>
+              <p
                 className={`truncate px-1 text-xs font-medium text-zinc-300 ${
                   compact ? 'lg:sr-only' : ''
                 }`}
@@ -243,43 +250,26 @@ export function Sidebar({ session }: SidebarProps) {
             </div>
           ) : (
             <div className="space-y-2">
-              <form action={signInWithGoogle}>
-                <button
-                  type="submit"
-                  title={compact ? 'Continuer avec Google' : undefined}
-                  className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
-                    compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
-                  }`}
-                >
-                  <LogIn className="size-4 shrink-0" aria-hidden />
-                  <span className={compact ? 'lg:sr-only' : ''}>
-                    Continuer avec Google
-                  </span>
-                </button>
-              </form>
               <Link
                 href="/login"
                 title={compact ? 'Se connecter' : undefined}
+                className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
+                  compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
+                }`}
+              >
+                <LogIn className="size-4 shrink-0" aria-hidden />
+                <span className={compact ? 'lg:sr-only' : ''}>Se connecter</span>
+              </Link>
+              <Link
+                href="/signup"
+                title={compact ? "S'inscrire" : undefined}
                 className={`inline-flex h-11 w-full items-center gap-3 rounded-md border border-zinc-800 px-3 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 ${
                   compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
                 }`}
               >
                 <User className="size-4 shrink-0" aria-hidden />
-                <span className={compact ? 'lg:sr-only' : ''}>Se connecter</span>
+                <span className={compact ? 'lg:sr-only' : ''}>S&apos;inscrire</span>
               </Link>
-              <p
-                className={`px-1 text-center text-xs text-zinc-500 ${
-                  compact ? 'lg:sr-only' : ''
-                }`}
-              >
-                ou{' '}
-                <Link
-                  href="/signup"
-                  className="font-medium text-emerald-400 hover:text-emerald-300"
-                >
-                  inscrivez-vous
-                </Link>
-              </p>
             </div>
           )}
 

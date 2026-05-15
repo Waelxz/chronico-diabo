@@ -3,10 +3,17 @@ import { type Collection } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 
 export type DiabetesType = '1' | '2' | 'gestational' | 'prediabetes' | 'other';
+export type Gender = 'male' | 'female' | 'other';
 
 export type CompanionProfile = {
   sessionId: string;
   name?: string;
+  birthDate?: string;
+  gender?: Gender;
+  heightCm?: number;
+  weightKg?: number;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
   diabetesType?: DiabetesType;
   treatment?: string;
   goals?: string[];

@@ -42,12 +42,22 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const RESTAURANT_TOOL_INSTRUCTIONS =
   "Si l'utilisateur demande des restaurants, appelle findRestaurants. Réponds ensuite en français avec les 3 meilleurs choix, leur score, le niveau de glucides et une phrase de prudence. Si la position est approximative, dis-le brièvement et propose de partager une localisation plus précise. Si l'utilisateur demande des hôtels ou hébergements, appelle findHotels.";
 
-type ChatRequestBody = { messages: UIMessage[]; chatId?: string | null };
+type ChatRequestBody = {
+  messages: UIMessage[];
+  chatId?: string | null;
+  userId?: string;
+};
 
 const onboardingProfileSchema = z.object({
   diabetesType: z.enum(['t1', 't2', 'pre', 'unknown']).optional(),
   goal: z.enum(['glucose', 'restaurants', 'travel', 'emotional']).optional(),
   name: z.string().trim().max(80).optional(),
+  birthDate: z.string().trim().max(10).optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  heightCm: z.number().min(80).max(250).optional(),
+  weightKg: z.number().min(20).max(350).optional(),
+  emergencyContactName: z.string().trim().max(120).optional(),
+  emergencyContactPhone: z.string().trim().max(40).optional(),
 });
 
 type OnboardingProfile = z.infer<typeof onboardingProfileSchema>;
@@ -93,6 +103,9 @@ export async function POST(req: Request) {
   // anonymous users keep the original rolling cookie thread.
   const session = await auth();
   const userId = session?.user?.id;
+  if (body.userId && body.userId !== userId) {
+    return new Response('Utilisateur invalide', { status: 403 });
+  }
   const cookieStore = await cookies();
   const existingChatId = cookieStore.get(COOKIE_NAME)?.value;
   const anonId = req.headers.get('x-anon-id') ?? existingChatId ?? null;
@@ -121,7 +134,10 @@ export async function POST(req: Request) {
     console.error('[chat] touchChat failed:', err),
   );
   if (userText) {
-    void appendMessage(chatId, 'user', userText).catch((err) =>
+    void appendMessage(chatId, 'user', userText, undefined, {
+      userId,
+      anonId,
+    }).catch((err) =>
       console.error('[chat] appendMessage(user) failed:', err),
     );
   }
@@ -237,7 +253,10 @@ export async function POST(req: Request) {
       try {
         const meta =
           citations.length > 0 ? { kbCitations: citations } : undefined;
-        await appendMessage(chatId, 'assistant', trimmed, meta);
+        await appendMessage(chatId, 'assistant', trimmed, meta, {
+          userId,
+          anonId,
+        });
       } catch (err) {
         console.error('[chat] appendMessage(assistant) failed:', err);
       }
@@ -270,6 +289,16 @@ export async function POST(req: Request) {
 function buildMemoryBlock(profile: CompanionProfile): string {
   const parts: string[] = [];
   if (profile.name) parts.push(`Prénom: ${profile.name}.`);
+  if (profile.birthDate) parts.push(`Date de naissance: ${profile.birthDate}.`);
+  if (profile.gender) parts.push(`Genre: ${genderLabel(profile.gender)}.`);
+  if (profile.heightCm) parts.push(`Taille: ${profile.heightCm} cm.`);
+  if (profile.weightKg) parts.push(`Poids: ${profile.weightKg} kg.`);
+  if (profile.emergencyContactName) {
+    parts.push(`Contact d'urgence: ${profile.emergencyContactName}.`);
+  }
+  if (profile.emergencyContactPhone) {
+    parts.push(`Téléphone d'urgence: ${profile.emergencyContactPhone}.`);
+  }
   if (profile.diabetesType) {
     parts.push(`Diabète: ${diabetesTypeLabel(profile.diabetesType)}.`);
   }
@@ -280,6 +309,19 @@ function buildMemoryBlock(profile: CompanionProfile): string {
   }
   if (profile.city) parts.push(`Ville: ${profile.city}.`);
   return parts.length > 0 ? `## Mémoire utilisateur\n${parts.join(' ')}` : '';
+}
+
+function genderLabel(type: CompanionProfile['gender']): string {
+  switch (type) {
+    case 'male':
+      return 'homme';
+    case 'female':
+      return 'femme';
+    case 'other':
+      return 'autre';
+    default:
+      return 'non précisé';
+  }
 }
 
 function diabetesTypeLabel(type: CompanionProfile['diabetesType']): string {
@@ -320,6 +362,12 @@ async function getOnboardingProfile(
     diabetesType: doc?.diabetesType,
     goal: doc?.goal,
     name: doc?.name,
+    birthDate: doc?.birthDate,
+    gender: doc?.gender,
+    heightCm: doc?.heightCm,
+    weightKg: doc?.weightKg,
+    emergencyContactName: doc?.emergencyContactName,
+    emergencyContactPhone: doc?.emergencyContactPhone,
   });
   return parsed.success ? parsed.data : null;
 }
@@ -349,6 +397,20 @@ function sanitizeOnboardingProfile(profile: OnboardingProfile): OnboardingProfil
       ? (sanitizePromptString(profile.goal) as OnboardingProfile['goal'])
       : undefined,
     name: profile.name ? sanitizePromptString(profile.name) : undefined,
+    birthDate: profile.birthDate
+      ? sanitizePromptString(profile.birthDate)
+      : undefined,
+    gender: profile.gender
+      ? (sanitizePromptString(profile.gender) as OnboardingProfile['gender'])
+      : undefined,
+    heightCm: profile.heightCm,
+    weightKg: profile.weightKg,
+    emergencyContactName: profile.emergencyContactName
+      ? sanitizePromptString(profile.emergencyContactName)
+      : undefined,
+    emergencyContactPhone: profile.emergencyContactPhone
+      ? sanitizePromptString(profile.emergencyContactPhone)
+      : undefined,
   };
 }
 
@@ -357,6 +419,17 @@ function buildOnboardingProfileBlock(profile: OnboardingProfile | null): string 
   const safeProfile = sanitizeOnboardingProfile(profile);
   const lines: string[] = [];
   if (safeProfile.name) lines.push(`L'utilisateur s'appelle ${safeProfile.name}.`);
+  if (safeProfile.birthDate) {
+    lines.push(`Sa date de naissance est ${safeProfile.birthDate}.`);
+  }
+  if (safeProfile.gender) {
+    lines.push(`Genre: ${genderLabel(safeProfile.gender)}.`);
+  }
+  if (safeProfile.heightCm) lines.push(`Taille: ${safeProfile.heightCm} cm.`);
+  if (safeProfile.weightKg) lines.push(`Poids: ${safeProfile.weightKg} kg.`);
+  if (safeProfile.emergencyContactName) {
+    lines.push(`Contact d'urgence: ${safeProfile.emergencyContactName}.`);
+  }
   if (safeProfile.diabetesType === 't1') {
     lines.push('Il vit avec un diabète de type 1.');
   }

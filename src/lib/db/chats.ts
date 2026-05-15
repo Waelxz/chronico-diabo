@@ -16,6 +16,7 @@ import { getDb } from '../mongodb';
 export type ChatDoc = {
   _id: string;
   userId?: string;
+  anonId?: string;
   createdAt: Date;
   updatedAt: Date;
   lastUserMessage?: string;
@@ -62,10 +63,14 @@ export async function appendMessage(
   role: MessageDoc['role'],
   content: string,
   metadata?: Record<string, unknown>,
+  owner?: { userId?: string; anonId?: string | null },
 ): Promise<void> {
   const [chats, msgs] = await Promise.all([chatsCol(), messagesCol()]);
   if (!chats || !msgs) return;
   const now = new Date();
+  const ownerSet: Partial<Pick<ChatDoc, 'userId' | 'anonId'>> = {};
+  if (owner?.userId) ownerSet.userId = owner.userId;
+  if (!owner?.userId && owner?.anonId) ownerSet.anonId = owner.anonId;
   const doc: MessageDoc = {
     _id: new ObjectId(),
     chatId,
@@ -80,7 +85,11 @@ export async function appendMessage(
   const lastKey = role === 'user' ? 'lastUserMessage' : 'lastAssistantMessage';
   await chats.updateOne(
     { _id: chatId },
-    { $set: { [lastKey]: content, updatedAt: now } },
+    {
+      $set: { [lastKey]: content, updatedAt: now, ...ownerSet },
+      $setOnInsert: { _id: chatId, createdAt: now },
+    },
+    { upsert: true },
   );
 }
 

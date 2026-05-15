@@ -17,6 +17,16 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 const profileSchema = z.object({
   name: z.string().trim().max(80).optional(),
+  birthDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  heightCm: z.number().int().min(80).max(250).optional(),
+  weightKg: z.number().min(20).max(350).optional(),
+  emergencyContactName: z.string().trim().max(120).optional(),
+  emergencyContactPhone: z.string().trim().max(40).optional(),
   diabetesType: z
     .enum(['1', '2', 'gestational', 'prediabetes', 'other'])
     .optional(),
