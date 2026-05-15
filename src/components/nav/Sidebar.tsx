@@ -125,9 +125,7 @@ export function Sidebar({ session }: SidebarProps) {
   }, [mobileOpen]);
 
   const compact = !expanded;
-  const authAction = session?.user ? signOutCurrentUser : signInWithGoogle;
-  const AuthIcon = session?.user ? LogOut : LogIn;
-  const authLabel = session?.user ? 'Déconnexion' : 'Connexion';
+  const userLabel = session?.user?.name ?? session?.user?.email ?? 'Compte Diabo';
 
   return (
     <>
@@ -220,18 +218,70 @@ export function Sidebar({ session }: SidebarProps) {
             }`}
           />
 
-          <form action={authAction}>
-            <button
-              type="submit"
-              title={compact ? authLabel : undefined}
-            className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
-                compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
-              }`}
-            >
-              <AuthIcon className="size-4 shrink-0" aria-hidden />
-              <span className={compact ? 'lg:sr-only' : ''}>{authLabel}</span>
-            </button>
-          </form>
+          {session?.user ? (
+            <div className="space-y-2">
+              <p
+                className={`truncate px-1 text-xs font-medium text-zinc-300 ${
+                  compact ? 'lg:sr-only' : ''
+                }`}
+                title={userLabel}
+              >
+                {userLabel}
+              </p>
+              <form action={signOutCurrentUser}>
+                <button
+                  type="submit"
+                  title={compact ? 'Déconnexion' : undefined}
+                  className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
+                    compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
+                  }`}
+                >
+                  <LogOut className="size-4 shrink-0" aria-hidden />
+                  <span className={compact ? 'lg:sr-only' : ''}>Déconnexion</span>
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <form action={signInWithGoogle}>
+                <button
+                  type="submit"
+                  title={compact ? 'Continuer avec Google' : undefined}
+                  className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
+                    compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
+                  }`}
+                >
+                  <LogIn className="size-4 shrink-0" aria-hidden />
+                  <span className={compact ? 'lg:sr-only' : ''}>
+                    Continuer avec Google
+                  </span>
+                </button>
+              </form>
+              <Link
+                href="/login"
+                title={compact ? 'Se connecter' : undefined}
+                className={`inline-flex h-11 w-full items-center gap-3 rounded-md border border-zinc-800 px-3 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 ${
+                  compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
+                }`}
+              >
+                <User className="size-4 shrink-0" aria-hidden />
+                <span className={compact ? 'lg:sr-only' : ''}>Se connecter</span>
+              </Link>
+              <p
+                className={`px-1 text-center text-xs text-zinc-500 ${
+                  compact ? 'lg:sr-only' : ''
+                }`}
+              >
+                ou{' '}
+                <Link
+                  href="/signup"
+                  className="font-medium text-emerald-400 hover:text-emerald-300"
+                >
+                  inscrivez-vous
+                </Link>
+              </p>
+            </div>
+          )}
 
           <button
             type="button"
