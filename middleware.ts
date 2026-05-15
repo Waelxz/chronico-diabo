@@ -5,6 +5,7 @@ import { routing } from './src/i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 const protectedRoutes = new Set(['reminders', 'glucose']);
+const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 
 export default async function middleware(request: NextRequest) {
   const protectedPath = getProtectedPath(request.nextUrl.pathname);
@@ -12,7 +13,13 @@ export default async function middleware(request: NextRequest) {
     return intlMiddleware(request);
   }
 
-  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
+  const token = authSecret
+    ? await getToken({
+        req: request,
+        secret: authSecret,
+        secureCookie: isSecureRequest(request),
+      })
+    : null;
   if (token) {
     return intlMiddleware(request);
   }
@@ -39,4 +46,18 @@ function getProtectedPath(pathname: string): { locale: string } | null {
   return {
     locale: hasLocale ? maybeLocale : routing.defaultLocale,
   };
+}
+
+function isSecureRequest(request: NextRequest): boolean {
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  if (forwardedProto) {
+    return forwardedProto.split(',')[0]?.trim() === 'https';
+  }
+
+  const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+  if (authUrl) {
+    return authUrl.startsWith('https://');
+  }
+
+  return request.nextUrl.protocol === 'https:';
 }

@@ -9,6 +9,8 @@ const env = getEnv();
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: env.AUTH_SECRET,
+  trustHost: true,
   providers: [
     Google({
       clientId: env.GOOGLE_CLIENT_ID,
@@ -50,6 +52,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: '/login',
   },
   callbacks: {
+    jwt({ token, user }) {
+      if (user?.id) {
+        token.sub = user.id;
+      }
+      return token;
+    },
     session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
