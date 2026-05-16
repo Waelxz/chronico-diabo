@@ -70,7 +70,7 @@ function DiaboPeekButton({
       }
       aria-expanded={chatOpen}
     >
-      <DiaboStage className={`absolute inset-x-0 h-64 w-full transition-[top] duration-500 ease-out ${chatOpen ? 'top-0' : '-top-56'}`} />
+      <DiaboStage className={`absolute inset-x-0 h-64 w-full transition-[top] duration-500 ease-out ${chatOpen ? 'top-0' : '-top-48'}`} />
     </button>
   );
 }
