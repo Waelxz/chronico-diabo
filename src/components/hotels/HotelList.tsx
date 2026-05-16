@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { Navigation } from 'lucide-react';
 import type { MapPin } from '@/components/map/VectorMap';
 import type { RankedHotel } from '@/lib/hotel-scorer';
 
@@ -261,8 +262,9 @@ function HotelCard({
   hotel: RankedHotel;
   selected: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const [scoreReady, setScoreReady] = useState(false);
+  const description = hotelDescription(hotel);
+  const directionsUrl = googleDirectionsUrl(hotel.lat, hotel.lon);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setScoreReady(true), 50);
@@ -275,23 +277,11 @@ function HotelCard({
         selected ? 'ring-2 ring-emerald-500' : ''
       }`}
     >
-      {hotel.photoUrl ? (
-        <figure>
-          <Image
-            src={hotel.photoUrl}
-            alt={hotel.name}
-            width={640}
-            height={360}
-            className="h-36 w-full object-cover"
-            loading="lazy"
-          />
-          {hotel.photoAttributions?.length ? (
-            <figcaption className="truncate px-4 pt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
-              Photo: {hotel.photoAttributions.join(', ')}
-            </figcaption>
-          ) : null}
-        </figure>
-      ) : null}
+      <PlacePhoto
+        alt={hotel.name}
+        photoAttributions={hotel.photoAttributions}
+        photoUrl={hotel.photoUrl}
+      />
       <div className="flex items-start justify-between gap-3 p-4 pb-0">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">
@@ -331,23 +321,88 @@ function HotelCard({
         {formatDistance(hotel.distanceMeters)}
       </div>
 
-      <button
-        type="button"
-        onClick={() => setExpanded((value) => !value)}
-        className={`mx-4 mb-4 mt-3 text-left text-sm leading-6 text-zinc-600 dark:text-zinc-300 ${
-          expanded ? '' : 'line-clamp-2'
-        }`}
-      >
-        {hotel.rationale}
-      </button>
-
       {hotel.address ? (
-        <p className="mx-4 mb-4 -mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mx-4 mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
           {hotel.address}
         </p>
       ) : null}
+
+      <div className="mx-4 mb-4 mt-3 space-y-3">
+        {description ? (
+          <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+            {description}
+          </p>
+        ) : null}
+        <a
+          href={directionsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-150 hover:border-emerald-400 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+        >
+          <Navigation className="size-4" aria-hidden />
+          Itinéraire
+        </a>
+      </div>
     </article>
   );
+}
+
+function PlacePhoto({
+  alt,
+  photoAttributions,
+  photoUrl,
+}: {
+  alt: string;
+  photoAttributions?: string[];
+  photoUrl?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showPhoto = Boolean(photoUrl) && !failed;
+
+  return (
+    <figure>
+      {showPhoto ? (
+        <Image
+          src={photoUrl ?? ''}
+          alt={alt}
+          width={640}
+          height={360}
+          className="h-36 w-full object-cover"
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="flex h-36 w-full items-center justify-center bg-zinc-100 text-xs font-medium text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+          Photo non disponible
+        </div>
+      )}
+      {showPhoto && photoAttributions?.length ? (
+        <figcaption className="truncate px-4 pt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+          Photo: {photoAttributions.join(', ')}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
+function hotelDescription(hotel: RankedHotel): string | null {
+  if (hotel.description) return truncateText(hotel.description, 120);
+  return `Type: ${hotelTypeLabel(hotel)}. Accès: ${accessibilityLabel(
+    hotel.accessibility,
+  ).toLowerCase()}.`;
+}
+
+function googleDirectionsUrl(lat: number, lon: number): string {
+  const destination = `${lat},${lon}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+    destination,
+  )}`;
+}
+
+function truncateText(value: string, maxLength: number): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
 function hotelTypeLabel(hotel: RankedHotel): string {

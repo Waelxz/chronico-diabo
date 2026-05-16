@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import {
   ChatInputBar,
   ChatMessages,
@@ -60,19 +60,17 @@ function DiaboPeekButton({
       type="button"
       ref={containerRef}
       onClick={onToggleChat}
-      className={`fixed z-[65] transition-[bottom,right,transform,width,height] duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
+      className={`fixed bottom-0 right-4 z-[65] overflow-hidden rounded-t-2xl transition-[height,width,transform,opacity] duration-500 ease-out focus:outline-none ${
         chatOpen
-          ? 'bottom-0 right-4 h-52 w-52 translate-y-8 overflow-hidden'
-          : `bottom-0 right-4 h-52 w-48 overflow-hidden sm:w-52 ${visible ? 'translate-y-[5.5rem]' : 'translate-y-full'}`
+          ? 'h-64 w-56 translate-y-0'
+          : `h-10 w-36 ${visible ? 'translate-y-0' : 'translate-y-full'}`
       }`}
-      aria-label={chatOpen ? 'Fermer le chat Diabo' : 'Ouvrir le chat Diabo'}
+      aria-label={
+        chatOpen ? 'Fermer la conversation avec Diabo' : 'Afficher Diabo'
+      }
       aria-expanded={chatOpen}
     >
-      <span className="absolute inset-x-0 bottom-0 h-4 rounded-t-full bg-white/60 backdrop-blur-sm dark:bg-zinc-950/60" />
       <DiaboStage className="absolute inset-x-0 top-0 h-64 w-full" />
-      <span className="absolute bottom-5 right-3 inline-flex size-11 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-700">
-        <MessageCircle className="size-5" aria-hidden />
-      </span>
     </button>
   );
 }
@@ -87,7 +85,7 @@ function FloatingChatPanel({
   userId?: string;
 }) {
   return (
-    <div className="fixed bottom-4 right-[calc(13rem+1rem)] z-[70] w-[min(24rem,calc(100vw-15rem))] min-w-64 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl shadow-zinc-950/20 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="fixed bottom-4 right-[calc(14rem+1rem)] z-[70] w-[min(24rem,calc(100vw-16rem))] min-w-64 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl shadow-zinc-950/20 dark:border-zinc-800 dark:bg-zinc-950">
       <ChatPanel signedIn={signedIn} userId={userId}>
         <section
           className="flex h-[min(28rem,calc(100dvh-2rem))] flex-col"

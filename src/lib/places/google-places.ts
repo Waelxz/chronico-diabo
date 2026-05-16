@@ -19,6 +19,7 @@ const GOOGLE_FIELD_MASK = [
   'places.internationalPhoneNumber',
   'places.rating',
   'places.userRatingCount',
+  'places.editorialSummary',
   'places.photos',
 ].join(',');
 
@@ -40,6 +41,7 @@ type GooglePlace = {
   internationalPhoneNumber?: string;
   rating?: number;
   userRatingCount?: number;
+  editorialSummary?: { text?: string };
   photos?: GooglePhoto[];
 };
 
@@ -209,6 +211,7 @@ function normalizeRestaurants(
       const phone = (
         place.nationalPhoneNumber ?? place.internationalPhoneNumber
       )?.trim();
+      const description = place.editorialSummary?.text?.trim();
       const openingHours = formatOpeningHours(
         place.currentOpeningHours ?? place.regularOpeningHours,
       );
@@ -220,6 +223,7 @@ function normalizeRestaurants(
       if (typeof place.userRatingCount === 'number') {
         restaurant.userRatingCount = place.userRatingCount;
       }
+      if (description) restaurant.description = description;
       if (photo?.url) restaurant.photoUrl = photo.url;
       if (photo?.attributions.length) {
         restaurant.photoAttributions = photo.attributions;
@@ -243,9 +247,11 @@ function normalizeHotels(places: GooglePlace[]): HotelPoi[] {
       };
       const address = place.formattedAddress?.trim();
       const website = place.websiteUri?.trim();
+      const description = place.editorialSummary?.text?.trim();
       const photo = firstPhoto(place);
       if (address) hotel.address = address;
       if (website) hotel.website = website;
+      if (description) hotel.description = description;
       if (photo?.url) hotel.photoUrl = photo.url;
       if (photo?.attributions.length) hotel.photoAttributions = photo.attributions;
       return hotel;

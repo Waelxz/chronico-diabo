@@ -109,6 +109,7 @@ async function scoreWithLlm(poi: RestaurantPoi): Promise<RestaurantScore> {
       `Site web: ${poi.website ?? 'non renseignee'}`,
       `Contact: ${poi.phone ?? 'non renseigne'}`,
       `Note utilisateurs: ${formatRatingForPrompt(poi)}`,
+      `Description: ${poi.description ?? 'non renseignee'}`,
     ].join('\n'),
   });
   return normalizeScore(object);
@@ -160,7 +161,7 @@ function heuristicScore(poi: RestaurantPoi): RestaurantScore {
     score: clamped,
     carb_load_tier: tierFromScore(clamped, cuisine),
     rationale:
-      'Évaluation provisoire basée sur le type de cuisine disponible. Privilégiez une assiette avec légumes, protéines grillées et boissons sans sucre.',
+      'Repères diabète basés sur le type de cuisine. Privilégiez une assiette avec légumes, protéines grillées et boissons sans sucre.',
   };
 }
 

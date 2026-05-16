@@ -26,6 +26,7 @@ export interface HotelPoi {
   stars?: number;
   website?: string;
   wheelchair?: string;
+  description?: string;
   photoUrl?: string;
   photoAttributions?: string[];
 }

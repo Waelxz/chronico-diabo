@@ -12,6 +12,7 @@ export type RestaurantPoi = {
   phone?: string;
   rating?: number;
   userRatingCount?: number;
+  description?: string;
   photoUrl?: string;
   photoAttributions?: string[];
 };

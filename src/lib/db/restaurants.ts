@@ -25,6 +25,7 @@ export type RecoCacheDoc = {
   phone?: string;
   rating?: number;
   userRatingCount?: number;
+  description?: string;
   photoUrl?: string;
   photoAttributions?: string[];
   score: number;
@@ -89,6 +90,7 @@ export async function upsertRestaurantScore(
         phone: poi.phone,
         rating: poi.rating,
         userRatingCount: poi.userRatingCount,
+        description: poi.description,
         photoUrl: poi.photoUrl,
         photoAttributions: poi.photoAttributions,
         score: score.score,
@@ -141,6 +143,7 @@ export async function listCachedRestaurantsNear({
       phone: doc.phone,
       rating: doc.rating,
       userRatingCount: doc.userRatingCount,
+      description: doc.description,
       photoUrl: doc.photoUrl,
       photoAttributions: doc.photoAttributions,
       score: doc.score,

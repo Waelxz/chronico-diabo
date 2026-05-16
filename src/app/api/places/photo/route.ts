@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { getEnv } from '@/lib/env';
 import { getGooglePlacePhotoMediaUrl } from '@/lib/places/google-places';
 
@@ -39,7 +39,20 @@ export async function GET(request: NextRequest) {
     return new Response(null, { status: 404 });
   }
 
-  return NextResponse.redirect(data.photoUri);
+  const photoResponse = await fetch(data.photoUri, { cache: 'no-store' });
+  if (!photoResponse.ok) {
+    return new Response(null, { status: photoResponse.status });
+  }
+
+  const headers = new Headers();
+  const contentType = photoResponse.headers.get('content-type');
+  if (contentType) headers.set('content-type', contentType);
+  headers.set('cache-control', 'public, max-age=86400, s-maxage=86400');
+
+  return new Response(photoResponse.body, {
+    status: photoResponse.status,
+    headers,
+  });
 }
 
 function parseDimension(value: string | null, fallback: number): number {

@@ -18,6 +18,7 @@ export type HotelCacheDoc = {
   stars?: number;
   website?: string;
   wheelchair?: string;
+  description?: string;
   photoUrl?: string;
   photoAttributions?: string[];
   score: number;
@@ -79,6 +80,7 @@ export async function upsertHotelScore(
         stars: poi.stars,
         website: poi.website,
         wheelchair: poi.wheelchair,
+        description: poi.description,
         photoUrl: poi.photoUrl,
         photoAttributions: poi.photoAttributions,
         score: score.score,
@@ -118,6 +120,7 @@ export async function listCachedHotelsNear(
       stars: doc.stars,
       website: doc.website,
       wheelchair: doc.wheelchair,
+      description: doc.description,
       photoUrl: doc.photoUrl,
       photoAttributions: doc.photoAttributions,
       score: doc.score,

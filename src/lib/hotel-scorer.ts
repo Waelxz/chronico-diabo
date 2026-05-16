@@ -103,6 +103,7 @@ async function scoreWithLlm(poi: HotelPoi): Promise<HotelScore> {
       `Étoiles: ${poi.stars ?? 'non renseignées'}`,
       `Site web: ${poi.website ?? 'non renseigné'}`,
       `Accès fauteuil: ${poi.wheelchair ?? 'non renseigné'}`,
+      `Description: ${poi.description ?? 'non renseignée'}`,
     ].join('\n'),
   });
 
@@ -124,7 +125,7 @@ function heuristicScore(poi: HotelPoi): HotelScore {
     score: clampScore(score),
     accessibility: getAccessibility(poi.wheelchair),
     rationale:
-      "Évaluation provisoire basée sur les informations OpenStreetMap disponibles. Vérifiez l'accès, les repas et la proximité des soins avant réservation.",
+      "Vérifiez l'accès, les repas et la proximité des soins directement auprès de l'hébergement avant réservation.",
   };
 }
 
