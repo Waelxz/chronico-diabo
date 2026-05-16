@@ -2,11 +2,13 @@ import { cookies } from 'next/headers';
 import { ObjectId } from 'mongodb';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { auth } from '@/lib/auth';
 import {
   ensureGlucoseIndexes,
-  getLogsForSession,
+  getLogsForOwner,
   insertLog,
   type GlucoseContext,
+  type OwnerKey,
   type GlucoseUnit,
 } from '@/lib/db/glucose';
 
@@ -24,15 +26,26 @@ const logSchema = z.object({
 });
 
 export async function GET() {
-  const { sessionId, isNewSession } = await resolveSessionId();
+  const session = await auth();
+  const userId = session?.user?.id;
+  let anonSession: Awaited<ReturnType<typeof resolveSessionId>> | null = null;
+  let ownerKey: OwnerKey;
+  if (userId) {
+    ownerKey = { userId };
+  } else {
+    anonSession = await resolveSessionId();
+    ownerKey = { sessionId: anonSession.sessionId };
+  }
 
   await ensureGlucoseIndexes().catch((err) =>
     console.warn('[glucose-api] ensure indexes failed:', err),
   );
 
-  const logs = await getLogsForSession(sessionId);
+  const logs = await getLogsForOwner(ownerKey);
   const response = NextResponse.json({ logs });
-  setSessionCookie(response, sessionId, isNewSession);
+  if (anonSession) {
+    setSessionCookie(response, anonSession.sessionId, anonSession.isNewSession);
+  }
   return response;
 }
 
@@ -68,13 +81,22 @@ export async function POST(req: Request) {
     );
   }
 
-  const { sessionId, isNewSession } = await resolveSessionId();
+  const session = await auth();
+  const userId = session?.user?.id;
+  let anonSession: Awaited<ReturnType<typeof resolveSessionId>> | null = null;
+  let ownerKey: OwnerKey;
+  if (userId) {
+    ownerKey = { userId };
+  } else {
+    anonSession = await resolveSessionId();
+    ownerKey = { sessionId: anonSession.sessionId };
+  }
 
   await ensureGlucoseIndexes().catch((err) =>
     console.warn('[glucose-api] ensure indexes failed:', err),
   );
 
-  const log = await insertLog(sessionId, {
+  const log = await insertLog(ownerKey, {
     value,
     unit,
     measuredAt: measuredDate,
@@ -90,7 +112,9 @@ export async function POST(req: Request) {
   }
 
   const response = NextResponse.json({ log });
-  setSessionCookie(response, sessionId, isNewSession);
+  if (anonSession) {
+    setSessionCookie(response, anonSession.sessionId, anonSession.isNewSession);
+  }
   return response;
 }
 

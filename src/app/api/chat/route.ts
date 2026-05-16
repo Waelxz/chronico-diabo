@@ -166,7 +166,13 @@ export async function POST(req: Request) {
       console.warn('[chat] getOnboardingProfile failed, continuing:', err);
       return null;
     }),
-    getProfile(chatId).catch((err) => {
+    (
+      userId
+        ? getProfile({ userId })
+        : existingChatId
+          ? getProfile({ sessionId: existingChatId })
+          : Promise.resolve(null)
+    ).catch((err) => {
       console.warn('[chat] getProfile failed, continuing without memory:', err);
       return null;
     }),

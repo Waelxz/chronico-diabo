@@ -2,11 +2,13 @@ import { cookies } from 'next/headers';
 import { ObjectId } from 'mongodb';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { auth } from '@/lib/auth';
 import {
   ensureCompanionIndexes,
   getProfile,
   upsertProfile,
   type CompanionProfile,
+  type OwnerKey,
 } from '@/lib/db/companion';
 
 export const runtime = 'nodejs';
@@ -37,17 +39,22 @@ const profileSchema = z.object({
 });
 
 export async function GET() {
+  const session = await auth();
+  const userId = session?.user?.id;
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(COOKIE_NAME)?.value;
-  if (!sessionId) {
+  if (!userId && !sessionId) {
     return NextResponse.json({ profile: null });
   }
+  const ownerKey: OwnerKey = userId
+    ? { userId }
+    : { sessionId: sessionId as string };
 
   await ensureCompanionIndexes().catch((err) =>
     console.warn('[companion-profile] ensure indexes failed:', err),
   );
 
-  const profile = await getProfile(sessionId);
+  const profile = await getProfile(ownerKey);
   return NextResponse.json({ profile });
 }
 
@@ -75,14 +82,23 @@ async function saveProfile(req: Request) {
     );
   }
 
-  const { sessionId, isNewSession } = await resolveSessionId();
+  const session = await auth();
+  const userId = session?.user?.id;
+  let anonSession: Awaited<ReturnType<typeof resolveSessionId>> | null = null;
+  let ownerKey: OwnerKey;
+  if (userId) {
+    ownerKey = { userId };
+  } else {
+    anonSession = await resolveSessionId();
+    ownerKey = { sessionId: anonSession.sessionId };
+  }
 
   await ensureCompanionIndexes().catch((err) =>
     console.warn('[companion-profile] ensure indexes failed:', err),
   );
 
   const profile = await upsertProfile(
-    sessionId,
+    ownerKey,
     cleanProfileInput(parsed.data),
   );
   if (!profile) {
@@ -93,7 +109,9 @@ async function saveProfile(req: Request) {
   }
 
   const response = NextResponse.json({ profile });
-  setSessionCookie(response, sessionId, isNewSession);
+  if (anonSession) {
+    setSessionCookie(response, anonSession.sessionId, anonSession.isNewSession);
+  }
   return response;
 }
 

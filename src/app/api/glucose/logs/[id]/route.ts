@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { deleteLog } from '@/lib/db/glucose';
+import { auth } from '@/lib/auth';
+import { deleteLog, type OwnerKey } from '@/lib/db/glucose';
 
 export const runtime = 'nodejs';
 
@@ -10,13 +11,19 @@ export async function DELETE(
   _req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const cookieStore = await cookies();
-  const sessionId = cookieStore.get(COOKIE_NAME)?.value;
+  const session = await auth();
+  const userId = session?.user?.id;
+  const cookieStore = userId ? null : await cookies();
+  const sessionId = cookieStore?.get(COOKIE_NAME)?.value;
   const { id } = await context.params;
 
-  if (sessionId) {
-    await deleteLog(sessionId, id);
+  if (!userId && !sessionId) {
+    return NextResponse.json({ ok: true });
   }
 
+  const ownerKey: OwnerKey = userId
+    ? { userId }
+    : { sessionId: sessionId as string };
+  await deleteLog(ownerKey, id);
   return NextResponse.json({ ok: true });
 }

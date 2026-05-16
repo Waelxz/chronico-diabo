@@ -12,7 +12,7 @@ type OnboardingProfile = {
   name: string;
 };
 
-const PROFILE_KEY = 'diabo_profile';
+const DONE_KEY = 'diabo_onboarding_done';
 const ANON_ID_KEY = 'diabo_anon_id';
 
 const DIABETES_OPTIONS: Array<{ value: DiabetesType; label: string }> = [
@@ -42,7 +42,7 @@ export function OnboardingFlow() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem(PROFILE_KEY)) {
+    if (window.localStorage.getItem(DONE_KEY)) {
       router.push(homePath);
       return;
     }
@@ -68,7 +68,7 @@ export function OnboardingFlow() {
       name: name.trim(),
     };
 
-    window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    window.localStorage.setItem(DONE_KEY, '1');
 
     try {
       await fetch('/api/onboarding', {

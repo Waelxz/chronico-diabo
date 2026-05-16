@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { transferAnonChatToUser } from '@/lib/db/chats';
+import { transferAnonProfileToUser } from '@/lib/db/companion';
+import { transferAnonLogsToUser } from '@/lib/db/glucose';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,6 +31,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Conversation invalide' }, { status: 400 });
   }
 
-  const chatId = await transferAnonChatToUser(parsed.data.anonId, userId);
+  const [chatResult] = await Promise.allSettled([
+    transferAnonChatToUser(parsed.data.anonId, userId),
+    transferAnonProfileToUser(parsed.data.anonId, userId),
+    transferAnonLogsToUser(parsed.data.anonId, userId),
+  ]);
+  const chatId = chatResult.status === 'fulfilled' ? chatResult.value : null;
   return NextResponse.json({ chatId });
 }
