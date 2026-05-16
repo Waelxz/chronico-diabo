@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Bell, Download, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -12,6 +13,7 @@ type SettingsFormProps = {
 const NOTIFICATIONS_KEY = 'diabo_notifications_enabled';
 
 export function SettingsForm({ signedIn }: SettingsFormProps) {
+  const t = useTranslations('settings');
   const { setTheme, theme } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     () =>
@@ -29,9 +31,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
   }
 
   async function deleteConversations() {
-    const confirmed = window.confirm(
-      'Supprimer toutes vos conversations enregistrées ? Cette action est définitive.',
-    );
+    const confirmed = window.confirm(t('deleteConfirm'));
     if (!confirmed) return;
 
     setDeleting(true);
@@ -45,20 +45,16 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
         error?: string;
       };
       if (!response.ok) {
-        throw new Error(data.error ?? 'Suppression impossible');
+        throw new Error(data.error ?? t('deleteError'));
       }
-      setMessage(`${data.deletedCount ?? 0} conversation(s) supprimée(s).`);
+      setMessage(t('deleteSuccess', { count: data.deletedCount ?? 0 }));
       window.dispatchEvent(
         new CustomEvent('diabo:active-chat-changed', {
           detail: { chatId: null },
         }),
       );
     } catch (err) {
-      setMessage(
-        err instanceof Error
-          ? err.message
-          : 'Impossible de supprimer les conversations',
-      );
+      setMessage(err instanceof Error ? err.message : t('deleteFallbackError'));
     } finally {
       setDeleting(false);
     }
@@ -71,7 +67,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
       const response = await fetch('/api/settings/export');
       if (!response.ok) {
         const data = (await response.json()) as { error?: string };
-        throw new Error(data.error ?? 'Export impossible');
+        throw new Error(data.error ?? t('exportError'));
       }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -81,9 +77,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setMessage(
-        err instanceof Error ? err.message : 'Impossible de télécharger les données',
-      );
+      setMessage(err instanceof Error ? err.message : t('downloadFallbackError'));
     } finally {
       setDownloading(false);
     }
@@ -91,11 +85,11 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
 
   async function enablePushNotifications() {
     if (!signedIn) {
-      setMessage('Connectez-vous pour activer les notifications.');
+      setMessage(t('signInForNotifications'));
       return;
     }
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setMessage("Les notifications push ne sont pas disponibles dans ce navigateur.");
+      setMessage(t('pushUnavailable'));
       return;
     }
 
@@ -105,7 +99,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         updateNotifications(false);
-        setMessage('Autorisation des notifications refusee.');
+        setMessage(t('permissionDenied'));
         return;
       }
 
@@ -117,9 +111,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
         error?: string;
       };
       if (!keyResponse.ok || !keyData.publicKey) {
-        throw new Error(
-          keyData.error ?? 'Configuration des notifications introuvable',
-        );
+        throw new Error(keyData.error ?? t('pushConfigMissing'));
       }
 
       const registration = await navigator.serviceWorker.register('/sw.js');
@@ -139,17 +131,15 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(data.error ?? 'Abonnement impossible');
+        throw new Error(data.error ?? t('subscribeError'));
       }
 
       updateNotifications(true);
-      setMessage('Notifications activees.');
+      setMessage(t('notificationsEnabledMessage'));
     } catch (err) {
       updateNotifications(false);
       setMessage(
-        err instanceof Error
-          ? err.message
-          : "Impossible d'activer les notifications",
+        err instanceof Error ? err.message : t('notificationsFallbackError'),
       );
     } finally {
       setSubscribing(false);
@@ -165,21 +155,21 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
       ) : null}
 
       <SettingsSection
-        title="Langue"
-        description="Choisis la langue de l'interface."
+        title={t('languageTitle')}
+        description={t('languageDescription')}
       >
         <LanguageSwitcher />
       </SettingsSection>
 
       <SettingsSection
-        title="Apparence"
-        description="Sélectionne le thème visuel de Diabo."
+        title={t('appearanceTitle')}
+        description={t('appearanceDescription')}
       >
         <div className="inline-flex rounded-md border border-zinc-200 p-1 dark:border-zinc-800">
           {[
-            { label: 'Clair', value: 'light' },
-            { label: 'Sombre', value: 'dark' },
-            { label: 'Système', value: 'system' },
+            { label: t('themeLight'), value: 'light' },
+            { label: t('themeDark'), value: 'dark' },
+            { label: t('themeSystem'), value: 'system' },
           ].map((option) => (
             <button
               key={option.value}
@@ -198,8 +188,8 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
       </SettingsSection>
 
       <SettingsSection
-        title="Notifications"
-        description="Active ou désactive les rappels envoyés par Diabo."
+        title={t('notificationsTitle')}
+        description={t('notificationsDescription')}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="inline-flex items-center gap-3 text-sm font-medium text-zinc-800 dark:text-zinc-100">
@@ -209,7 +199,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
               onChange={(event) => updateNotifications(event.target.checked)}
               className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
             />
-            Rappels activés
+            {t('remindersEnabled')}
           </label>
           <button
             type="button"
@@ -218,15 +208,12 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
             className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200"
           >
             <Bell className="size-4" aria-hidden />
-            {subscribing ? 'Activation...' : 'Activer les notifications'}
+            {subscribing ? t('enablingNotifications') : t('enableNotifications')}
           </button>
         </div>
       </SettingsSection>
 
-      <SettingsSection
-        title="Données"
-        description="Télécharge tes données ou nettoie l'historique des conversations."
-      >
+      <SettingsSection title={t('dataTitle')} description={t('dataDescription')}>
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
@@ -235,7 +222,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
             className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200"
           >
             <Download className="size-4" aria-hidden />
-            {downloading ? 'Téléchargement...' : 'Télécharger mes données'}
+            {downloading ? t('downloading') : t('downloadData')}
           </button>
           <button
             type="button"
@@ -244,14 +231,14 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
             className="inline-flex items-center justify-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:border-red-400 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
           >
             <Trash2 className="size-4" aria-hidden />
-            {deleting ? 'Suppression...' : 'Supprimer les conversations'}
+            {deleting ? t('deleting') : t('deleteConversations')}
           </button>
         </div>
       </SettingsSection>
 
       <SettingsSection
-        title="Compte"
-        description="Options de sécurité et de suppression du compte."
+        title={t('accountTitle')}
+        description={t('accountDescription')}
       >
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
@@ -259,14 +246,14 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
             disabled
             className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-500 opacity-60 dark:border-zinc-800"
           >
-            Changer le mot de passe
+            {t('changePassword')}
           </button>
           <button
             type="button"
             disabled
             className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 opacity-60 dark:border-red-900 dark:text-red-300"
           >
-            Supprimer le compte
+            {t('deleteAccount')}
           </button>
         </div>
       </SettingsSection>

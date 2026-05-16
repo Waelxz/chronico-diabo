@@ -11,6 +11,7 @@ import {
   type LucideProps,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 
 type CommandPaletteProps = {
@@ -18,33 +19,62 @@ type CommandPaletteProps = {
   onOpenChange: (value: boolean) => void;
 };
 
+type CommandLabelKey =
+  | 'home'
+  | 'restaurants'
+  | 'hotels'
+  | 'glucose'
+  | 'profile'
+  | 'reminders';
+
+type CommandHref =
+  | '/'
+  | '/restaurants'
+  | '/hotels'
+  | '/glucose'
+  | '/onboarding'
+  | '/reminders';
+
 type CommandItem = {
-  label: string;
-  href: '/' | '/restaurants' | '/hotels' | '/glucose' | '/onboarding' | '/reminders';
+  labelKey: CommandLabelKey;
+  href: CommandHref;
   icon: ComponentType<LucideProps>;
 };
 
 const COMMAND_ITEMS: CommandItem[] = [
-  { label: 'Accueil', href: '/', icon: Home },
-  { label: 'Restaurants', href: '/restaurants', icon: UtensilsCrossed },
-  { label: 'Hotels', href: '/hotels', icon: Hotel },
-  { label: 'Glycemie', href: '/glucose', icon: Activity },
-  { label: 'Profil', href: '/onboarding', icon: User },
-  { label: 'Rappels', href: '/reminders', icon: Bell },
+  { labelKey: 'home', href: '/', icon: Home },
+  { labelKey: 'restaurants', href: '/restaurants', icon: UtensilsCrossed },
+  { labelKey: 'hotels', href: '/hotels', icon: Hotel },
+  { labelKey: 'glucose', href: '/glucose', icon: Activity },
+  { labelKey: 'profile', href: '/onboarding', icon: User },
+  { labelKey: 'reminders', href: '/reminders', icon: Bell },
 ];
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
+  const tNav = useTranslations('sidebar');
+  const tCommand = useTranslations('command');
+  const locale = useLocale();
+  const isRtl = locale === 'ar';
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  const commandItems = useMemo(
+    () =>
+      COMMAND_ITEMS.map((item) => ({
+        ...item,
+        label: tNav(item.labelKey),
+      })),
+    [tNav],
+  );
+
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return COMMAND_ITEMS;
-    return COMMAND_ITEMS.filter((item) =>
+    if (!normalized) return commandItems;
+    return commandItems.filter((item) =>
       item.label.toLowerCase().includes(normalized),
     );
-  }, [query]);
+  }, [commandItems, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -101,7 +131,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       <div className="mx-4 mt-32 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 sm:mx-auto">
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-zinc-400"
+            className={`pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 text-zinc-400 ${
+              isRtl ? 'right-4' : 'left-4'
+            }`}
             aria-hidden
           />
           <input
@@ -111,15 +143,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               setQuery(event.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Rechercher une page..."
-            className="diabo-field rounded-none border-0 border-b border-zinc-200 pl-10 dark:border-zinc-800"
+            placeholder={tCommand('searchPlaceholder')}
+            className={`diabo-field rounded-none border-0 border-b border-zinc-200 dark:border-zinc-800 ${
+              isRtl ? 'pr-10' : 'pl-10'
+            }`}
           />
         </div>
 
         <div className="max-h-80 overflow-y-auto p-2">
           {filteredItems.length === 0 ? (
             <p className="px-3 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-              Aucun resultat
+              {tCommand('empty')}
             </p>
           ) : (
             filteredItems.map((item, index) => {
@@ -134,7 +168,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     router.push(item.href);
                     onOpenChange(false);
                   }}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all ${
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                    isRtl ? 'text-right' : 'text-left'
+                  } ${
                     selected
                       ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
                       : 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800'

@@ -1,8 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 import { RestaurantList } from '@/components/restaurants/RestaurantList';
 
-export default async function RestaurantsPage() {
-  const t = await getTranslations('restaurants');
+export default async function RestaurantsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'restaurants' });
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">

@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore, type ComponentType } from 'react';
 import type { Session } from 'next-auth';
+import { useLocale, useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import {
   Activity,
   Bell,
@@ -12,8 +14,10 @@ import {
   LogIn,
   LogOut,
   Menu,
+  Moon,
   Search,
   Settings,
+  Sun,
   User,
   UtensilsCrossed,
   X,
@@ -28,30 +32,41 @@ type SidebarProps = {
   session: Session | null;
 };
 
+type NavLabelKey =
+  | 'home'
+  | 'restaurants'
+  | 'hotels'
+  | 'glucose'
+  | 'profile'
+  | 'reminders'
+  | 'settings';
+
+type NavHref =
+  | '/'
+  | '/restaurants'
+  | '/hotels'
+  | '/glucose'
+  | '/onboarding'
+  | '/reminders'
+  | '/settings';
+
 type NavItem = {
-  label: string;
-  href:
-    | '/'
-    | '/restaurants'
-    | '/hotels'
-    | '/glucose'
-    | '/onboarding'
-    | '/reminders'
-    | '/settings';
+  labelKey: NavLabelKey;
+  href: NavHref;
   icon: ComponentType<LucideProps>;
 };
 
 const navItems: NavItem[] = [
-  { label: 'Accueil', href: '/', icon: Home },
-  { label: 'Restaurants', href: '/restaurants', icon: UtensilsCrossed },
-  { label: 'Hôtels', href: '/hotels', icon: Hotel },
-  { label: 'Glycémie', href: '/glucose', icon: Activity },
-  { label: 'Rappels', href: '/reminders', icon: Bell },
+  { labelKey: 'home', href: '/', icon: Home },
+  { labelKey: 'restaurants', href: '/restaurants', icon: UtensilsCrossed },
+  { labelKey: 'hotels', href: '/hotels', icon: Hotel },
+  { labelKey: 'glucose', href: '/glucose', icon: Activity },
+  { labelKey: 'reminders', href: '/reminders', icon: Bell },
 ];
 
 const bottomNavItems: NavItem[] = [
-  { label: 'Profil', href: '/onboarding', icon: User },
-  { label: 'Paramètres', href: '/settings', icon: Settings },
+  { labelKey: 'profile', href: '/onboarding', icon: User },
+  { labelKey: 'settings', href: '/settings', icon: Settings },
 ];
 
 const SIDEBAR_WIDTH = {
@@ -101,7 +116,9 @@ function setStoredSidebarExpanded(expanded: boolean) {
 }
 
 export function Sidebar({ session }: SidebarProps) {
+  const locale = useLocale();
   const pathname = usePathname();
+  const t = useTranslations('sidebar');
   const expanded = useSyncExternalStore(
     subscribeSidebarExpanded,
     getStoredSidebarExpanded,
@@ -137,22 +154,30 @@ export function Sidebar({ session }: SidebarProps) {
   }, [mobileOpen]);
 
   const compact = !expanded;
-  const userLabel = session?.user?.name ?? session?.user?.email ?? 'Compte Diabo';
+  const isRtl = locale === 'ar';
+  const userLabel = session?.user?.name ?? session?.user?.email ?? t('defaultAccount');
+  const mobileSideClass = isRtl ? 'right-3' : 'left-3';
+  const badgeSideClass = isRtl ? '-left-1' : '-right-1';
+  const asideSideClass = isRtl
+    ? `right-0 border-l ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`
+    : `left-0 border-r ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`;
 
   return (
     <>
       <button
         type="button"
         onClick={() => setMobileOpen((value) => !value)}
-        className="fixed left-3 top-3 z-[60] inline-flex size-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-white shadow-lg shadow-zinc-950/20 transition-all duration-150 hover:border-emerald-500 lg:hidden"
-        aria-label={mobileOpen ? 'Fermer la navigation' : 'Ouvrir la navigation'}
+        className={`fixed top-3 z-[60] inline-flex size-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-white shadow-lg shadow-zinc-950/20 transition-all duration-150 hover:border-emerald-500 lg:hidden ${mobileSideClass}`}
+        aria-label={mobileOpen ? t('closeNavigation') : t('openNavigation')}
         aria-expanded={mobileOpen}
       >
         {mobileOpen ? (
           <X className="size-5" aria-hidden />
         ) : (
           <>
-            <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-emerald-500 text-[10px] font-bold text-zinc-950">
+            <span
+              className={`absolute -top-1 grid size-5 place-items-center rounded-full bg-emerald-500 text-[10px] font-bold text-zinc-950 ${badgeSideClass}`}
+            >
               D
             </span>
             <Menu className="size-5" aria-hidden />
@@ -164,16 +189,16 @@ export function Sidebar({ session }: SidebarProps) {
         <button
           type="button"
           className="fixed inset-0 z-40 bg-zinc-950/60 lg:hidden"
-          aria-label="Fermer la navigation"
+          aria-label={t('closeNavigation')}
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-56 flex-col border-r border-zinc-800/60 bg-zinc-900/95 text-zinc-400 shadow-2xl backdrop-blur-sm transition-[width,transform] duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 z-50 flex h-dvh w-56 flex-col border-zinc-800/60 bg-zinc-900/95 text-zinc-400 shadow-2xl backdrop-blur-sm transition-[width,transform] duration-300 ease-in-out lg:translate-x-0 ${
           expanded ? 'lg:w-56' : 'lg:w-[4.5rem]'
-        } ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        aria-label="Navigation principale"
+        } ${asideSideClass}`}
+        aria-label={t('navigation')}
       >
         <div
           className={`flex h-16 items-center border-b border-zinc-800 px-4 ${
@@ -205,8 +230,10 @@ export function Sidebar({ session }: SidebarProps) {
             <SidebarLink
               key={item.href}
               item={item}
+              label={t(item.labelKey)}
               active={isActive(pathname, item.href)}
               compact={compact}
+              isRtl={isRtl}
               onNavigate={() => setMobileOpen(false)}
             />
           ))}
@@ -218,8 +245,10 @@ export function Sidebar({ session }: SidebarProps) {
               <SidebarLink
                 key={item.href}
                 item={item}
+                label={t(item.labelKey)}
                 active={isActive(pathname, item.href)}
                 compact={compact}
+                isRtl={isRtl}
                 onNavigate={() => setMobileOpen(false)}
               />
             ))}
@@ -229,10 +258,10 @@ export function Sidebar({ session }: SidebarProps) {
             type="button"
             onClick={() => setPaletteOpen(true)}
             className="hidden h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 lg:inline-flex"
-            title={compact ? 'Recherche' : undefined}
+            title={compact ? t('search') : undefined}
           >
             <Search className="size-4" aria-hidden />
-            <span className={compact ? 'sr-only' : ''}>Recherche</span>
+            <span className={compact ? 'sr-only' : ''}>{t('search')}</span>
           </button>
 
           <LanguageSwitcher
@@ -242,6 +271,12 @@ export function Sidebar({ session }: SidebarProps) {
             }`}
           />
 
+          <ThemeToggle
+            compact={compact}
+            labelToDark={t('themeToDark')}
+            labelToLight={t('themeToLight')}
+          />
+
           {session?.user ? (
             <div className="space-y-2">
               <p
@@ -249,7 +284,7 @@ export function Sidebar({ session }: SidebarProps) {
                   compact ? 'lg:sr-only' : ''
                 }`}
               >
-                Compte Chronico
+                {t('account')}
               </p>
               <p
                 className={`truncate px-1 text-xs font-medium text-zinc-300 ${
@@ -262,13 +297,15 @@ export function Sidebar({ session }: SidebarProps) {
               <form action={signOutCurrentUser}>
                 <button
                   type="submit"
-                  title={compact ? 'Déconnexion' : undefined}
+                  title={compact ? t('signOut') : undefined}
                   className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
                     compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
                   }`}
                 >
                   <LogOut className="size-4 shrink-0" aria-hidden />
-                  <span className={compact ? 'lg:sr-only' : ''}>Déconnexion</span>
+                  <span className={compact ? 'lg:sr-only' : ''}>
+                    {t('signOut')}
+                  </span>
                 </button>
               </form>
             </div>
@@ -276,23 +313,23 @@ export function Sidebar({ session }: SidebarProps) {
             <div className="space-y-2">
               <Link
                 href="/login"
-                title={compact ? 'Se connecter' : undefined}
+                title={compact ? t('signIn') : undefined}
                 className={`inline-flex h-11 w-full items-center gap-3 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-500 ${
                   compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
                 }`}
               >
                 <LogIn className="size-4 shrink-0" aria-hidden />
-                <span className={compact ? 'lg:sr-only' : ''}>Se connecter</span>
+                <span className={compact ? 'lg:sr-only' : ''}>{t('signIn')}</span>
               </Link>
               <Link
                 href="/signup"
-                title={compact ? "S'inscrire" : undefined}
+                title={compact ? t('signUp') : undefined}
                 className={`inline-flex h-11 w-full items-center gap-3 rounded-md border border-zinc-800 px-3 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 ${
                   compact ? 'lg:w-11 lg:justify-center lg:px-0' : ''
                 }`}
               >
                 <User className="size-4 shrink-0" aria-hidden />
-                <span className={compact ? 'lg:sr-only' : ''}>S&apos;inscrire</span>
+                <span className={compact ? 'lg:sr-only' : ''}>{t('signUp')}</span>
               </Link>
             </div>
           )}
@@ -301,16 +338,22 @@ export function Sidebar({ session }: SidebarProps) {
             type="button"
             onClick={() => setStoredSidebarExpanded(!expanded)}
             className="hidden h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 lg:inline-flex"
-            aria-label={expanded ? 'Réduire la navigation' : 'Déployer la navigation'}
+            aria-label={expanded ? t('collapse') : t('expand')}
             aria-expanded={expanded}
           >
             {expanded ? (
+              isRtl ? (
+                <ChevronRight className="size-4" aria-hidden />
+              ) : (
+                <ChevronLeft className="size-4" aria-hidden />
+              )
+            ) : isRtl ? (
               <ChevronLeft className="size-4" aria-hidden />
             ) : (
               <ChevronRight className="size-4" aria-hidden />
             )}
             <span className={compact ? 'sr-only' : ''}>
-              {expanded ? 'Réduire' : 'Déployer'}
+              {expanded ? t('collapse') : t('expand')}
             </span>
           </button>
         </div>
@@ -321,44 +364,88 @@ export function Sidebar({ session }: SidebarProps) {
 }
 
 function SidebarLink({
-  item,
   active,
   compact,
+  isRtl,
+  item,
+  label,
   onNavigate,
 }: {
   item: NavItem;
+  label: string;
   active: boolean;
   compact: boolean;
+  isRtl: boolean;
   onNavigate: () => void;
 }) {
   const Icon = item.icon;
+  const activeShadow = isRtl
+    ? 'bg-zinc-900 text-emerald-400 shadow-[inset_-3px_0_0_#10b981]'
+    : 'bg-zinc-900 text-emerald-400 shadow-[inset_3px_0_0_#10b981]';
+  const tooltipSide = isRtl
+    ? 'right-[calc(100%+0.75rem)]'
+    : 'left-[calc(100%+0.75rem)]';
 
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
-      title={compact ? item.label : undefined}
+      title={compact ? label : undefined}
       className={`group relative flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-all duration-150 ${
         compact ? 'lg:justify-center lg:px-0' : ''
       } ${
-        active
-          ? 'bg-zinc-900 text-emerald-400 shadow-[inset_3px_0_0_#10b981]'
-          : 'text-zinc-400 hover:bg-zinc-900/70 hover:text-white'
+        active ? activeShadow : 'text-zinc-400 hover:bg-zinc-900/70 hover:text-white'
       }`}
       aria-current={active ? 'page' : undefined}
     >
       <Icon className="size-4 shrink-0" aria-hidden />
-      <span className={compact ? 'lg:sr-only' : ''}>{item.label}</span>
+      <span className={compact ? 'lg:sr-only' : ''}>{label}</span>
       {compact ? (
-        <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] hidden rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity delay-150 group-hover:opacity-100 lg:block">
-          {item.label}
+        <span
+          className={`pointer-events-none absolute hidden rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity delay-150 group-hover:opacity-100 lg:block ${tooltipSide}`}
+        >
+          {label}
         </span>
       ) : null}
     </Link>
   );
 }
 
-function isActive(pathname: string, href: NavItem['href']): boolean {
+function ThemeToggle({
+  compact,
+  labelToDark,
+  labelToLight,
+}: {
+  compact: boolean;
+  labelToDark: string;
+  labelToLight: string;
+}) {
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const label = isDark ? labelToLight : labelToDark;
+
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={label}
+      aria-pressed={isDark}
+      title={compact ? label : undefined}
+      className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-800 text-sm font-medium text-zinc-300 transition-all duration-150 hover:border-emerald-500 hover:text-emerald-300 ${
+        compact ? 'lg:w-11 lg:px-0' : ''
+      }`}
+    >
+      {isDark ? (
+        <Sun className="size-4" aria-hidden />
+      ) : (
+        <Moon className="size-4" aria-hidden />
+      )}
+      <span className={compact ? 'lg:sr-only' : ''}>{label}</span>
+    </button>
+  );
+}
+
+function isActive(pathname: string, href: NavHref): boolean {
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(`${href}/`);
 }

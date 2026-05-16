@@ -5,7 +5,39 @@
     "hotels": "Hôtels",
     "glucose": "Glycémie",
     "profile": "Profil",
-    "reminders": "Rappels"
+    "reminders": "Rappels",
+    "settings": "Paramètres"
+  },
+  "sidebar": {
+    "navigation": "Navigation principale",
+    "home": "Accueil",
+    "restaurants": "Restaurants",
+    "hotels": "Hôtels",
+    "glucose": "Glycémie",
+    "reminders": "Rappels",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "account": "Compte Chronico",
+    "defaultAccount": "Compte Diabo",
+    "search": "Recherche",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "signOut": "Déconnexion",
+    "openNavigation": "Ouvrir la navigation",
+    "closeNavigation": "Fermer la navigation",
+    "expand": "Déployer",
+    "collapse": "Réduire",
+    "themeToDark": "Mode sombre",
+    "themeToLight": "Mode clair"
+  },
+  "language": {
+    "arabic": "العربية",
+    "french": "Français",
+    "switchTo": "Changer la langue vers {locale}"
+  },
+  "command": {
+    "searchPlaceholder": "Rechercher une page...",
+    "empty": "Aucun résultat"
   },
   "home": {
     "title": "Diabo",
@@ -30,5 +62,46 @@
   "reminders": {
     "title": "Rappels",
     "description": "Planifiez vos rappels de traitement, glycémie, hydratation ou activité et activez les notifications du navigateur."
+  },
+  "settingsPage": {
+    "title": "Paramètres",
+    "description": "Ajuste la langue, l'apparence, les notifications et tes données."
+  },
+  "settings": {
+    "deleteConfirm": "Supprimer toutes vos conversations enregistrées ? Cette action est définitive.",
+    "deleteError": "Suppression impossible",
+    "deleteFallbackError": "Impossible de supprimer les conversations",
+    "deleteSuccess": "{count} conversation(s) supprimée(s).",
+    "exportError": "Export impossible",
+    "downloadFallbackError": "Impossible de télécharger les données",
+    "signInForNotifications": "Connectez-vous pour activer les notifications.",
+    "pushUnavailable": "Les notifications push ne sont pas disponibles dans ce navigateur.",
+    "permissionDenied": "Autorisation des notifications refusée.",
+    "pushConfigMissing": "Configuration des notifications introuvable",
+    "subscribeError": "Abonnement impossible",
+    "notificationsEnabledMessage": "Notifications activées.",
+    "notificationsFallbackError": "Impossible d'activer les notifications",
+    "languageTitle": "Langue",
+    "languageDescription": "Choisis la langue de l'interface.",
+    "appearanceTitle": "Apparence",
+    "appearanceDescription": "Sélectionne le thème visuel de Diabo.",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
+    "notificationsTitle": "Notifications",
+    "notificationsDescription": "Active ou désactive les rappels envoyés par Diabo.",
+    "remindersEnabled": "Rappels activés",
+    "enableNotifications": "Activer les notifications",
+    "enablingNotifications": "Activation...",
+    "dataTitle": "Données",
+    "dataDescription": "Télécharge tes données ou nettoie l'historique des conversations.",
+    "downloadData": "Télécharger mes données",
+    "downloading": "Téléchargement...",
+    "deleteConversations": "Supprimer les conversations",
+    "deleting": "Suppression...",
+    "accountTitle": "Compte",
+    "accountDescription": "Options de sécurité et de suppression du compte.",
+    "changePassword": "Changer le mot de passe",
+    "deleteAccount": "Supprimer le compte"
   }
 }

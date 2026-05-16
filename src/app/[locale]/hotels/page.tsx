@@ -6,8 +6,13 @@ export const metadata: Metadata = {
   title: 'Hôtels adaptés au diabète · Diabo',
 };
 
-export default async function HotelsPage() {
-  const t = await getTranslations('hotels');
+export default async function HotelsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'hotels' });
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">

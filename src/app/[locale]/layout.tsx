@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, setRequestLocale } from 'next-intl/server';
 import { DiaboProvider } from '@/components/diabo/DiaboProvider';
 import { DiaboPeekPortal } from '@/components/diabo/DiaboPeekPortal';
 import { Sidebar } from '@/components/nav/Sidebar';
@@ -55,8 +55,12 @@ export default async function LocaleLayout({
   if (!routing.locales.includes(locale as 'fr' | 'ar')) {
     notFound();
   }
+  setRequestLocale(locale);
 
-  const [messages, session] = await Promise.all([getMessages(), auth()]);
+  const [messages, session] = await Promise.all([
+    getMessages({ locale }),
+    auth(),
+  ]);
 
   return (
     <html
@@ -65,9 +69,9 @@ export default async function LocaleLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex h-full bg-zinc-950 font-sans">
-        <NextIntlClientProvider messages={messages}>
-          <ThemeProvider>
+      <body className="flex h-full bg-background font-sans text-foreground">
+        <ThemeProvider>
+          <NextIntlClientProvider locale={locale} messages={messages}>
             <DiaboProvider>
               <Sidebar session={session} />
               <DiaboPeekPortal
@@ -76,13 +80,13 @@ export default async function LocaleLayout({
               />
               <main
                 data-sidebar-main
-                className="flex min-h-full flex-1 flex-col transition-[margin] duration-300 ease-in-out lg:ml-[4.5rem]"
+                className="flex min-h-full flex-1 flex-col transition-[margin] duration-300 ease-in-out"
               >
                 <div className="transition-opacity duration-200">{children}</div>
               </main>
             </DiaboProvider>
-          </ThemeProvider>
-        </NextIntlClientProvider>
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

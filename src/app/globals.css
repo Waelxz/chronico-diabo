@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -13,11 +15,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @layer components {
@@ -89,7 +89,7 @@ textarea {
 
 @media (min-width: 1024px) {
   main[data-sidebar-main] {
-    margin-left: var(--sidebar-w, 4.5rem) !important;
-    transition: margin-left 300ms ease-in-out;
+    margin-inline-start: var(--sidebar-w, 4.5rem) !important;
+    transition: margin-inline-start 300ms ease-in-out;
   }
 }

@@ -5,7 +5,39 @@
     "hotels": "الفنادق",
     "glucose": "سكر الدم",
     "profile": "الملف الصحي",
-    "reminders": "التذكيرات"
+    "reminders": "التذكيرات",
+    "settings": "الإعدادات"
+  },
+  "sidebar": {
+    "navigation": "التنقل الرئيسي",
+    "home": "الرئيسية",
+    "restaurants": "المطاعم",
+    "hotels": "الفنادق",
+    "glucose": "سكر الدم",
+    "reminders": "التذكيرات",
+    "profile": "الملف الصحي",
+    "settings": "الإعدادات",
+    "account": "حساب Chronico",
+    "defaultAccount": "حساب ديابو",
+    "search": "البحث",
+    "signIn": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "signOut": "تسجيل الخروج",
+    "openNavigation": "فتح التنقل",
+    "closeNavigation": "إغلاق التنقل",
+    "expand": "توسيع",
+    "collapse": "تصغير",
+    "themeToDark": "الوضع الداكن",
+    "themeToLight": "الوضع الفاتح"
+  },
+  "language": {
+    "arabic": "العربية",
+    "french": "Français",
+    "switchTo": "تغيير اللغة إلى {locale}"
+  },
+  "command": {
+    "searchPlaceholder": "ابحث عن صفحة...",
+    "empty": "لا توجد نتائج"
   },
   "home": {
     "title": "ديابو",
@@ -30,5 +62,46 @@
   "reminders": {
     "title": "التذكيرات",
     "description": "نظم تذكيرات العلاج وقياس سكر الدم وشرب الماء أو النشاط البدني، وفعّل إشعارات المتصفح."
+  },
+  "settingsPage": {
+    "title": "الإعدادات",
+    "description": "عدّل اللغة والمظهر والإشعارات وبياناتك."
+  },
+  "settings": {
+    "deleteConfirm": "هل تريد حذف كل المحادثات المحفوظة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteError": "تعذر الحذف",
+    "deleteFallbackError": "تعذر حذف المحادثات",
+    "deleteSuccess": "تم حذف {count} محادثة.",
+    "exportError": "تعذر التصدير",
+    "downloadFallbackError": "تعذر تنزيل البيانات",
+    "signInForNotifications": "سجّل الدخول لتفعيل الإشعارات.",
+    "pushUnavailable": "إشعارات الدفع غير متاحة في هذا المتصفح.",
+    "permissionDenied": "تم رفض إذن الإشعارات.",
+    "pushConfigMissing": "تعذر العثور على إعدادات الإشعارات",
+    "subscribeError": "تعذر الاشتراك",
+    "notificationsEnabledMessage": "تم تفعيل الإشعارات.",
+    "notificationsFallbackError": "تعذر تفعيل الإشعارات",
+    "languageTitle": "اللغة",
+    "languageDescription": "اختر لغة الواجهة.",
+    "appearanceTitle": "المظهر",
+    "appearanceDescription": "اختر المظهر المرئي لديابو.",
+    "themeLight": "فاتح",
+    "themeDark": "داكن",
+    "themeSystem": "النظام",
+    "notificationsTitle": "الإشعارات",
+    "notificationsDescription": "فعّل أو عطّل التذكيرات التي يرسلها ديابو.",
+    "remindersEnabled": "التذكيرات مفعلة",
+    "enableNotifications": "تفعيل الإشعارات",
+    "enablingNotifications": "جار التفعيل...",
+    "dataTitle": "البيانات",
+    "dataDescription": "نزّل بياناتك أو نظّف سجل المحادثات.",
+    "downloadData": "تنزيل بياناتي",
+    "downloading": "جار التنزيل...",
+    "deleteConversations": "حذف المحادثات",
+    "deleting": "جار الحذف...",
+    "accountTitle": "الحساب",
+    "accountDescription": "خيارات الأمان وحذف الحساب.",
+    "changePassword": "تغيير كلمة المرور",
+    "deleteAccount": "حذف الحساب"
   }
 }

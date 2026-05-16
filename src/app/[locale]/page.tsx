@@ -7,8 +7,16 @@ import {
 import { HomeDiaboStage } from '@/components/diabo/HomeDiaboStage';
 import { auth } from '@/lib/auth';
 
-export default async function HomePage() {
-  const [session, t] = await Promise.all([auth(), getTranslations('home')]);
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const [session, t] = await Promise.all([
+    auth(),
+    getTranslations({ locale, namespace: 'home' }),
+  ]);
   const userId = session?.user?.id;
   const signedIn = Boolean(userId);
 

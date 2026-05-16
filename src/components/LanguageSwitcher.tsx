@@ -1,8 +1,9 @@
 'use client';
 
 import { Globe2 } from 'lucide-react';
-import { useLocale } from 'next-intl';
-import { usePathname, useRouter } from '@/i18n/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import { usePathname } from '@/i18n/navigation';
 
 type LanguageSwitcherProps = {
   compact?: boolean;
@@ -14,19 +15,23 @@ export function LanguageSwitcher({
   className,
 }: LanguageSwitcherProps) {
   const locale = useLocale();
-  const router = useRouter();
+  const t = useTranslations('language');
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const nextLocale = locale === 'ar' ? 'fr' : 'ar';
-  const label = locale === 'fr' ? 'العربية' : 'Français';
+  const label = locale === 'fr' ? t('arabic') : t('french');
 
   return (
     <button
       type="button"
       onClick={() => {
         window.localStorage.setItem('diabo_locale', nextLocale);
-        router.replace(pathname, { locale: nextLocale });
+        const query = searchParams.toString();
+        window.location.assign(
+          `/${nextLocale}${pathname}${query ? `?${query}` : ''}`,
+        );
       }}
-      aria-label={`Changer la langue vers ${label}`}
+      aria-label={t('switchTo', { locale: label })}
       title={compact ? label : undefined}
       className={`inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-150 hover:border-emerald-400 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300 ${className ?? ''}`}
     >
