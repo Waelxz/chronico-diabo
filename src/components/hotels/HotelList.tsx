@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import type { MapPin } from '@/components/map/VectorMap';
 import type { RankedHotel } from '@/lib/hotel-scorer';
 
@@ -10,6 +11,7 @@ const VectorMap = dynamic(
   () => import('@/components/map/VectorMap').then((mod) => mod.VectorMap),
   { ssr: false },
 );
+const RADIUS_OPTIONS = [800, 1500, 3000, 5000, 10000, 20000] as const;
 
 type HotelsApiResponse = {
   hotels: RankedHotel[];
@@ -19,7 +21,7 @@ type HotelsApiResponse = {
 
 export function HotelList() {
   const [center, setCenter] = useState(TUNIS);
-  const [radius, setRadius] = useState(2000);
+  const [radius, setRadius] = useState<typeof RADIUS_OPTIONS[number]>(1500);
   const [minScore, setMinScore] = useState(0);
   const [hotels, setHotels] = useState<RankedHotel[]>([]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
@@ -110,35 +112,52 @@ export function HotelList() {
     }
   }
 
+  const radiusIndex = Math.max(0, RADIUS_OPTIONS.indexOf(radius));
+
   return (
     <div className="space-y-5">
       <section
         className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
         aria-label="Filtres hôtels"
       >
-        <div className="min-w-40 space-y-2">
+        <div className="min-w-52 flex-1 space-y-2">
           <label
             htmlFor="hotel-distance"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
           >
             Rayon de recherche
           </label>
-          <select
+          <input
             id="hotel-distance"
-            value={radius}
-            onChange={(event) => setRadius(Number(event.target.value))}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-all duration-150 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          >
-            <option value={800}>800 m</option>
-            <option value={1500}>1,5 km</option>
-            <option value={3000}>3 km</option>
-            <option value={5000}>5 km</option>
-            <option value={10000}>10 km</option>
-            <option value={20000}>20 km</option>
-          </select>
+            type="range"
+            min={0}
+            max={RADIUS_OPTIONS.length - 1}
+            step={1}
+            value={radiusIndex}
+            onChange={(event) => {
+              setRadius(RADIUS_OPTIONS[Number(event.target.value)]);
+            }}
+            className="w-full accent-emerald-600"
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Rayon {formatRadius(radius)}
+          </p>
         </div>
 
-        <div className="min-w-44 flex-1 space-y-2">
+        <button
+          type="button"
+          onClick={useCurrentLocation}
+          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-emerald-700"
+        >
+          Utiliser ma position
+        </button>
+      </section>
+
+      <section
+        className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+        aria-label="Score minimum hotels"
+      >
+        <div className="max-w-sm space-y-2">
           <label
             htmlFor="hotel-score"
             className="text-sm font-medium text-zinc-800 dark:text-zinc-100"
@@ -159,14 +178,6 @@ export function HotelList() {
             Minimum {formatScore(minScore)}
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={useCurrentLocation}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-emerald-700"
-        >
-          Utiliser ma position
-        </button>
       </section>
 
       <VectorMap
@@ -260,11 +271,28 @@ function HotelCard({
 
   return (
     <article
-      className={`rounded-lg border border-zinc-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 dark:border-zinc-800/60 dark:bg-zinc-900 dark:hover:border-emerald-800 ${
+      className={`overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/10 dark:border-zinc-800/60 dark:bg-zinc-900 dark:hover:border-emerald-800 ${
         selected ? 'ring-2 ring-emerald-500' : ''
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
+      {hotel.photoUrl ? (
+        <figure>
+          <Image
+            src={hotel.photoUrl}
+            alt={hotel.name}
+            width={640}
+            height={360}
+            className="h-36 w-full object-cover"
+            loading="lazy"
+          />
+          {hotel.photoAttributions?.length ? (
+            <figcaption className="truncate px-4 pt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+              Photo: {hotel.photoAttributions.join(', ')}
+            </figcaption>
+          ) : null}
+        </figure>
+      ) : null}
+      <div className="flex items-start justify-between gap-3 p-4 pb-0">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">
             {hotel.name}
@@ -282,7 +310,7 @@ function HotelCard({
         </span>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-2 px-4">
         <div className="flex items-center justify-between text-xs font-medium">
           <span className="text-zinc-500 dark:text-zinc-400">
             Score diabète
@@ -299,14 +327,14 @@ function HotelCard({
         </div>
       </div>
 
-      <div className="mt-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
+      <div className="mt-4 px-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
         {formatDistance(hotel.distanceMeters)}
       </div>
 
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className={`mt-3 text-left text-sm leading-6 text-zinc-600 dark:text-zinc-300 ${
+        className={`mx-4 mb-4 mt-3 text-left text-sm leading-6 text-zinc-600 dark:text-zinc-300 ${
           expanded ? '' : 'line-clamp-2'
         }`}
       >
@@ -314,7 +342,7 @@ function HotelCard({
       </button>
 
       {hotel.address ? (
-        <p className="mt-3 truncate text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mx-4 mb-4 -mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
           {hotel.address}
         </p>
       ) : null}
@@ -353,6 +381,12 @@ function scoreBarClass(score: number): string {
 
 function formatScore(score: number): string {
   return `${(score / 10).toFixed(1).replace('.', ',')}/10`;
+}
+
+function formatRadius(meters: number): string {
+  if (meters < 1000) return `${meters}m`;
+  const kilometers = meters / 1000;
+  return `${Number.isInteger(kilometers) ? kilometers.toFixed(0) : kilometers.toFixed(1)}km`;
 }
 
 function formatDistance(meters: number): string {

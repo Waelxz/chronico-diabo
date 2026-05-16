@@ -30,7 +30,7 @@ export function DiaboPeek({
       <DiaboPeekButton
         chatOpen={chatOpen}
         visible={visible}
-        onOpenChat={() => setChatOpen(true)}
+        onToggleChat={() => setChatOpen((value) => !value)}
       />
       {chatOpen ? (
         <FloatingChatPanel
@@ -45,11 +45,11 @@ export function DiaboPeek({
 
 function DiaboPeekButton({
   chatOpen,
-  onOpenChat,
+  onToggleChat,
   visible,
 }: {
   chatOpen: boolean;
-  onOpenChat: () => void;
+  onToggleChat: () => void;
   visible: boolean;
 }) {
   const containerRef = useRef<HTMLButtonElement>(null);
@@ -59,13 +59,13 @@ function DiaboPeekButton({
     <button
       type="button"
       ref={containerRef}
-      onClick={onOpenChat}
+      onClick={onToggleChat}
       className={`fixed z-[65] transition-[bottom,right,transform,width,height] duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
         chatOpen
-          ? 'bottom-[calc(min(22.5rem,calc(100dvh-13rem))+1rem)] right-4 h-64 w-52 translate-y-0 overflow-visible sm:bottom-4 sm:right-[calc(min(18rem,calc(100vw-2rem))+1.5rem)]'
+          ? 'bottom-0 right-4 h-52 w-52 translate-y-8 overflow-hidden'
           : `bottom-0 right-4 h-52 w-48 overflow-hidden sm:w-52 ${visible ? 'translate-y-[5.5rem]' : 'translate-y-full'}`
       }`}
-      aria-label="Ouvrir le chat Diabo"
+      aria-label={chatOpen ? 'Fermer le chat Diabo' : 'Ouvrir le chat Diabo'}
       aria-expanded={chatOpen}
     >
       <span className="absolute inset-x-0 bottom-0 h-4 rounded-t-full bg-white/60 backdrop-blur-sm dark:bg-zinc-950/60" />
@@ -87,10 +87,10 @@ function FloatingChatPanel({
   userId?: string;
 }) {
   return (
-    <div className="fixed bottom-4 right-4 z-[70] w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl shadow-zinc-950/20 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="fixed bottom-4 right-[calc(13rem+1rem)] z-[70] w-[min(24rem,calc(100vw-15rem))] min-w-64 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl shadow-zinc-950/20 dark:border-zinc-800 dark:bg-zinc-950">
       <ChatPanel signedIn={signedIn} userId={userId}>
         <section
-          className="flex h-[min(22.5rem,calc(100dvh-13rem))] flex-col sm:h-[min(24rem,calc(100dvh-2rem))]"
+          className="flex h-[min(28rem,calc(100dvh-2rem))] flex-col"
           aria-label="Chat flottant avec Diabo"
         >
           <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">

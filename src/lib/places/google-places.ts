@@ -15,6 +15,11 @@ const GOOGLE_FIELD_MASK = [
   'places.currentOpeningHours',
   'places.regularOpeningHours',
   'places.websiteUri',
+  'places.nationalPhoneNumber',
+  'places.internationalPhoneNumber',
+  'places.rating',
+  'places.userRatingCount',
+  'places.photos',
 ].join(',');
 
 type GoogleNearbyResponse = {
@@ -31,11 +36,21 @@ type GooglePlace = {
   currentOpeningHours?: GoogleOpeningHours;
   regularOpeningHours?: GoogleOpeningHours;
   websiteUri?: string;
+  nationalPhoneNumber?: string;
+  internationalPhoneNumber?: string;
+  rating?: number;
+  userRatingCount?: number;
+  photos?: GooglePhoto[];
 };
 
 type GoogleOpeningHours = {
   openNow?: boolean;
   weekdayDescriptions?: string[];
+};
+
+type GooglePhoto = {
+  name?: string;
+  authorAttributions?: Array<{ displayName?: string }>;
 };
 
 const CUISINE_TYPE_ALIASES: Record<string, string[]> = {
@@ -190,10 +205,25 @@ function normalizeRestaurants(
         lon: location.lon,
       };
       const address = place.formattedAddress?.trim();
+      const website = place.websiteUri?.trim();
+      const phone = (
+        place.nationalPhoneNumber ?? place.internationalPhoneNumber
+      )?.trim();
       const openingHours = formatOpeningHours(
         place.currentOpeningHours ?? place.regularOpeningHours,
       );
+      const photo = firstPhoto(place);
       if (address) restaurant.address = address;
+      if (website) restaurant.website = website;
+      if (phone) restaurant.phone = phone;
+      if (typeof place.rating === 'number') restaurant.rating = place.rating;
+      if (typeof place.userRatingCount === 'number') {
+        restaurant.userRatingCount = place.userRatingCount;
+      }
+      if (photo?.url) restaurant.photoUrl = photo.url;
+      if (photo?.attributions.length) {
+        restaurant.photoAttributions = photo.attributions;
+      }
       if (openingHours) restaurant.opening_hours = openingHours;
       return restaurant;
     })
@@ -213,8 +243,11 @@ function normalizeHotels(places: GooglePlace[]): HotelPoi[] {
       };
       const address = place.formattedAddress?.trim();
       const website = place.websiteUri?.trim();
+      const photo = firstPhoto(place);
       if (address) hotel.address = address;
       if (website) hotel.website = website;
+      if (photo?.url) hotel.photoUrl = photo.url;
+      if (photo?.attributions.length) hotel.photoAttributions = photo.attributions;
       return hotel;
     })
     .filter((place): place is HotelPoi => place !== null);
@@ -278,4 +311,53 @@ function formatOpeningHours(hours?: GoogleOpeningHours): string | undefined {
     return hours.openNow ? 'Ouvert maintenant' : 'Ferme maintenant';
   }
   return hours.weekdayDescriptions?.[0]?.trim() || undefined;
+}
+
+function firstPhoto(
+  place: GooglePlace,
+): { url: string; attributions: string[] } | undefined {
+  const photo = place.photos?.find((item) => item.name);
+  if (!photo?.name) return undefined;
+  return {
+    url: getGooglePlacePhotoUrl(photo.name),
+    attributions:
+      photo.authorAttributions
+        ?.map((author) => author.displayName?.trim())
+        .filter((name): name is string => Boolean(name)) ?? [],
+  };
+}
+
+export function getGooglePlacePhotoUrl(
+  photoName: string,
+  { maxWidthPx = 640, maxHeightPx = 360 } = {},
+): string {
+  const params = new URLSearchParams({
+    name: photoName,
+    maxWidthPx: String(maxWidthPx),
+    maxHeightPx: String(maxHeightPx),
+  });
+  return `/api/places/photo?${params.toString()}`;
+}
+
+export function getGooglePlacePhotoMediaUrl({
+  apiKey,
+  maxHeightPx,
+  maxWidthPx,
+  photoName,
+  skipHttpRedirect = false,
+}: {
+  apiKey: string;
+  maxHeightPx?: number;
+  maxWidthPx?: number;
+  photoName: string;
+  skipHttpRedirect?: boolean;
+}): string {
+  const params = new URLSearchParams({ key: apiKey });
+  const normalizedPhotoName = photoName.endsWith('/media')
+    ? photoName.slice(0, -'/media'.length)
+    : photoName;
+  if (maxHeightPx) params.set('maxHeightPx', String(maxHeightPx));
+  if (maxWidthPx) params.set('maxWidthPx', String(maxWidthPx));
+  if (skipHttpRedirect) params.set('skipHttpRedirect', 'true');
+  return `https://places.googleapis.com/v1/${normalizedPhotoName}/media?${params.toString()}`;
 }

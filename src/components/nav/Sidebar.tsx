@@ -213,12 +213,13 @@ export function Sidebar({ session }: SidebarProps) {
         </nav>
 
         <div className="space-y-3 border-t border-zinc-800 p-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
             {bottomNavItems.map((item) => (
-              <SidebarIconLink
+              <SidebarLink
                 key={item.href}
                 item={item}
                 active={isActive(pathname, item.href)}
+                compact={compact}
                 onNavigate={() => setMobileOpen(false)}
               />
             ))}
@@ -353,39 +354,6 @@ function SidebarLink({
           {item.label}
         </span>
       ) : null}
-    </Link>
-  );
-}
-
-function SidebarIconLink({
-  item,
-  active,
-  onNavigate,
-}: {
-  item: NavItem;
-  active: boolean;
-  onNavigate: () => void;
-}) {
-  const Icon = item.icon;
-
-  return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      title={item.label}
-      aria-label={item.label}
-      aria-current={active ? 'page' : undefined}
-      className={`group relative inline-flex h-11 items-center justify-center rounded-md border text-sm font-medium transition-all duration-150 ${
-        active
-          ? 'border-emerald-500 bg-zinc-900 text-emerald-400'
-          : 'border-zinc-800 text-zinc-300 hover:border-emerald-500 hover:text-emerald-300'
-      }`}
-    >
-      <Icon className="size-4" aria-hidden />
-      <span className="sr-only">{item.label}</span>
-      <span className="pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity delay-150 group-hover:opacity-100 lg:block">
-        {item.label}
-      </span>
     </Link>
   );
 }

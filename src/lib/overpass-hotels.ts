@@ -26,6 +26,8 @@ export interface HotelPoi {
   stars?: number;
   website?: string;
   wheelchair?: string;
+  photoUrl?: string;
+  photoAttributions?: string[];
 }
 
 export class HotelOverpassTimeoutError extends Error {

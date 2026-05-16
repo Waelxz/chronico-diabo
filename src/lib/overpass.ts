@@ -119,6 +119,8 @@ function normalizeElements(
       lon,
       address: formatAddress(tags),
       opening_hours: tags.opening_hours,
+      website: tags.website?.trim() || tags['contact:website']?.trim() || undefined,
+      phone: tags.phone?.trim() || tags['contact:phone']?.trim() || undefined,
     });
   }
 

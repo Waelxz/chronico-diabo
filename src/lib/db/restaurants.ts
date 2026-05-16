@@ -19,6 +19,14 @@ export type RecoCacheDoc = {
   cuisine: string[];
   lat: number;
   lon: number;
+  address?: string;
+  opening_hours?: string;
+  website?: string;
+  phone?: string;
+  rating?: number;
+  userRatingCount?: number;
+  photoUrl?: string;
+  photoAttributions?: string[];
   score: number;
   rationale: string;
   carb_load_tier: CarbLoadTier;
@@ -75,6 +83,14 @@ export async function upsertRestaurantScore(
         cuisine: poi.cuisine,
         lat: poi.lat,
         lon: poi.lon,
+        address: poi.address,
+        opening_hours: poi.opening_hours,
+        website: poi.website,
+        phone: poi.phone,
+        rating: poi.rating,
+        userRatingCount: poi.userRatingCount,
+        photoUrl: poi.photoUrl,
+        photoAttributions: poi.photoAttributions,
         score: score.score,
         rationale: score.rationale,
         carb_load_tier: score.carb_load_tier,
@@ -119,6 +135,14 @@ export async function listCachedRestaurantsNear({
       cuisine: doc.cuisine,
       lat: doc.lat,
       lon: doc.lon,
+      address: doc.address,
+      opening_hours: doc.opening_hours,
+      website: doc.website,
+      phone: doc.phone,
+      rating: doc.rating,
+      userRatingCount: doc.userRatingCount,
+      photoUrl: doc.photoUrl,
+      photoAttributions: doc.photoAttributions,
       score: doc.score,
       rationale: doc.rationale,
       carb_load_tier: doc.carb_load_tier,

@@ -57,14 +57,28 @@ export async function rankRestaurants({
     const chunkScored = await Promise.all(
       chunk.map(async (restaurant) => {
         const score = await scoreRestaurant(restaurant);
+        const distance = distanceMeters(
+          userLat,
+          userLon,
+          restaurant.lat,
+          restaurant.lon,
+        );
+        const contextualScore = applyContextualRestaurantScore(
+          score.score,
+          restaurant,
+          distance,
+        );
         return {
           ...restaurant,
-          score: score.score,
+          score: contextualScore,
           rationale: score.rationale,
-          carb_load_tier: score.carb_load_tier,
+          carb_load_tier: tierFromScore(
+            contextualScore,
+            restaurant.cuisine.join(' ').toLowerCase(),
+          ),
           cacheHit: score.cacheHit,
           cachedAt: score.cachedAt?.toISOString(),
-          distanceMeters: distanceMeters(userLat, userLon, restaurant.lat, restaurant.lon),
+          distanceMeters: distance,
         };
       }),
     );
@@ -92,6 +106,9 @@ async function scoreWithLlm(poi: RestaurantPoi): Promise<RestaurantScore> {
       `Cuisine: ${poi.cuisine.length > 0 ? poi.cuisine.join(', ') : 'non renseignée'}`,
       `Adresse: ${poi.address ?? 'non renseignée'}`,
       `Horaires: ${poi.opening_hours ?? 'non renseignés'}`,
+      `Site web: ${poi.website ?? 'non renseignee'}`,
+      `Contact: ${poi.phone ?? 'non renseigne'}`,
+      `Note utilisateurs: ${formatRatingForPrompt(poi)}`,
     ].join('\n'),
   });
   return normalizeScore(object);
@@ -101,11 +118,34 @@ function heuristicScore(poi: RestaurantPoi): RestaurantScore {
   const cuisine = poi.cuisine.join(' ').toLowerCase();
   let score = 62;
 
-  const favorable = ['grill', 'salad', 'seafood', 'fish', 'mediterranean', 'tunisian'];
-  const moderate = ['pizza', 'pasta', 'italian', 'burger', 'sandwich', 'fast_food'];
-  const heavy = ['dessert', 'ice_cream', 'cake', 'fried', 'chicken', 'asian', 'chinese'];
+  const lowCarbPreferred = [
+    'barbecue',
+    'fish',
+    'grill',
+    'mediterranean',
+    'poisson',
+    'salad',
+    'salade',
+    'seafood',
+    'steak',
+    'tunisian',
+    'vegetarian',
+  ];
+  const moderate = ['burger', 'fast food', 'fast_food', 'italian', 'pizza', 'sandwich'];
+  const heavy = [
+    'asian',
+    'cake',
+    'chicken',
+    'chinese',
+    'dessert',
+    'fried',
+    'ice cream',
+    'ice_cream',
+    'pasta',
+    'pastry',
+  ];
 
-  for (const item of favorable) {
+  for (const item of lowCarbPreferred) {
     if (cuisine.includes(item)) score += 8;
   }
   for (const item of moderate) {
@@ -124,6 +164,43 @@ function heuristicScore(poi: RestaurantPoi): RestaurantScore {
   };
 }
 
+/**
+ * Ranking formula:
+ * 1. Start from the cached food-fit score (LLM or heuristic), where low-carb
+ *    cuisine cues such as grill, salad, seafood and Mediterranean increase the
+ *    score, while carb-heavy/fried/sweet cuisines reduce it.
+ * 2. Add trust signals: website +4, phone/contact +4, opening hours +6.
+ * 3. Add user rating confidence: rating above 3.5 contributes up to +10, with
+ *    enough reviews adding up to +4; weak ratings below 3.5 reduce the score.
+ * 4. Add proximity for the current search only: <=800m +8, <=1.5km +6,
+ *    <=3km +4, <=5km +2, and >10km -6.
+ */
+function applyContextualRestaurantScore(
+  baseScore: number,
+  poi: RestaurantPoi,
+  distanceMetersValue: number,
+): number {
+  let score = baseScore;
+
+  if (poi.website) score += 4;
+  if (poi.phone) score += 4;
+  if (poi.opening_hours) score += 6;
+
+  if (typeof poi.rating === 'number') {
+    score += Math.round((poi.rating - 3.5) * 6);
+    if ((poi.userRatingCount ?? 0) >= 50) score += 4;
+    else if ((poi.userRatingCount ?? 0) >= 10) score += 2;
+  }
+
+  if (distanceMetersValue <= 800) score += 8;
+  else if (distanceMetersValue <= 1500) score += 6;
+  else if (distanceMetersValue <= 3000) score += 4;
+  else if (distanceMetersValue <= 5000) score += 2;
+  else if (distanceMetersValue > 10000) score -= 6;
+
+  return clampScore(score);
+}
+
 function normalizeScore(score: z.infer<typeof ScoreSchema>): RestaurantScore {
   return {
     score: clampScore(score.score),
@@ -136,9 +213,20 @@ function clampScore(score: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+function formatRatingForPrompt(poi: RestaurantPoi): string {
+  if (typeof poi.rating !== 'number') return 'non renseignee';
+  const count = poi.userRatingCount ? ` (${poi.userRatingCount} avis)` : '';
+  return `${poi.rating}/5${count}`;
+}
+
 function tierFromScore(score: number, cuisine: string): CarbLoadTier {
+  if (
+    /grill|salad|salade|seafood|fish|poisson|mediterranean|barbecue/.test(cuisine)
+  ) {
+    return 'low';
+  }
   if (score >= 78) return 'low';
-  if (score < 45 || /pizza|pasta|dessert|ice_cream|cake/.test(cuisine)) {
+  if (score < 45 || /pizza|pasta|dessert|ice_cream|ice cream|cake/.test(cuisine)) {
     return 'high';
   }
   return 'medium';

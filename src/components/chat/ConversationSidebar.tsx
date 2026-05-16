@@ -111,6 +111,10 @@ export function ConversationSidebar() {
     }
   }
 
+  if (!loading && chats.length === 0) {
+    return null;
+  }
+
   return (
     <aside className="lg:w-72 lg:shrink-0">
       <button

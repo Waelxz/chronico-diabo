@@ -8,6 +8,12 @@ export type RestaurantPoi = {
   lon: number;
   address?: string;
   opening_hours?: string;
+  website?: string;
+  phone?: string;
+  rating?: number;
+  userRatingCount?: number;
+  photoUrl?: string;
+  photoAttributions?: string[];
 };
 
 export type RestaurantScore = {
