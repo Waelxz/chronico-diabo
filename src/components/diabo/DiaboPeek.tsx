@@ -60,17 +60,17 @@ function DiaboPeekButton({
       type="button"
       ref={containerRef}
       onClick={onToggleChat}
-      className={`fixed bottom-0 right-4 z-[65] overflow-hidden rounded-t-2xl transition-[height,width,transform,opacity] duration-500 ease-out focus:outline-none ${
+      className={`fixed bottom-0 right-4 z-[65] overflow-hidden rounded-t-2xl focus:outline-none ${
         chatOpen
-          ? 'h-64 w-56 translate-y-0'
-          : `h-10 w-36 ${visible ? 'translate-y-0' : 'translate-y-full'}`
+          ? 'h-64 w-56'
+          : `h-10 w-36 ${visible ? '' : 'translate-y-full'}`
       }`}
       aria-label={
         chatOpen ? 'Fermer la conversation avec Diabo' : 'Afficher Diabo'
       }
       aria-expanded={chatOpen}
     >
-      <DiaboStage className={`absolute inset-x-0 h-64 w-full transition-[top] duration-500 ${chatOpen ? 'top-0' : '-top-60'}`} />
+      <DiaboStage className={`absolute inset-x-0 h-64 w-full ${chatOpen ? 'top-0' : '-top-48'}`} />
     </button>
   );
 }
