@@ -13,9 +13,5 @@ export async function sendPushNotification(
   subscription: PushSubscription,
   payload: { title: string; body: string; url?: string },
 ): Promise<void> {
-  try {
-    await sendNotification(subscription, payload);
-  } catch {
-    // Push endpoints expire frequently; failed sends must not break reminders.
-  }
+  await sendNotification(subscription, payload);
 }

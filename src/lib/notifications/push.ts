@@ -37,6 +37,8 @@ export async function sendNotification(
   subscription: PushSubscription,
   payload: { title: string; body: string; url?: string },
 ): Promise<void> {
-  if (!configureVapid()) return;
+  if (!configureVapid()) {
+    throw new Error('VAPID keys are not configured');
+  }
   await webpush.sendNotification(subscription, JSON.stringify(payload));
 }
