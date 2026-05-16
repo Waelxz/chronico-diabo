@@ -62,7 +62,7 @@ function DiaboPeekButton({
       onClick={onToggleChat}
       className={`fixed bottom-0 right-4 z-[65] overflow-hidden rounded-t-2xl focus:outline-none ${
         chatOpen
-          ? 'h-64 w-56 translate-y-0'
+          ? 'h-[420px] w-56 translate-y-0'
           : `h-44 w-52 ${visible ? 'translate-y-0' : 'translate-y-full'}`
       }`}
       aria-label={
