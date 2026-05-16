@@ -194,7 +194,11 @@ export function RemindersPanel() {
     setPushStatus(null);
     setError(null);
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      if (
+        !('serviceWorker' in navigator) ||
+        !('PushManager' in window) ||
+        !('Notification' in window)
+      ) {
         throw new Error('Notifications non prises en charge par ce navigateur');
       }
       const keyResponse = await fetch('/api/push/subscribe');
@@ -203,7 +207,15 @@ export function RemindersPanel() {
         throw new Error('Clé VAPID manquante côté serveur');
       }
       const registration = await navigator.serviceWorker.register('/sw.js');
-      const permission = await Notification.requestPermission();
+      const permission =
+        Notification.permission === 'default'
+          ? await Notification.requestPermission()
+          : Notification.permission;
+      if (permission === 'denied') {
+        throw new Error(
+          'Les notifications sont bloquées dans les paramètres du navigateur.',
+        );
+      }
       if (permission !== 'granted') {
         throw new Error('Autorisation de notification refusée');
       }
