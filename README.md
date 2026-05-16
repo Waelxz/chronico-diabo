@@ -2,6 +2,8 @@
 
 > Empathetic AI companion for diabetic patients (FR / AR). Built as the M1 Big Data UGC + Mobile Marketing project at IHEC, May 2026.
 
+> Latest deployment includes userId/sessionId linking for authenticated users.
+
 Diabo is the diabetes member of the **Chronico** family of empathetic AI companions for chronic conditions. It combines a **Rive-animated avatar** that reacts to your emotional state, an **emotion-aware LLM chat** with retrieval-augmented diabetes knowledge, and recommendation modules for restaurants, hotels, and travel — all tuned for the Maghreb francophone audience.
 
 ## Why this exists
