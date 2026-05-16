@@ -4,7 +4,6 @@ import {
   ChatMessages,
   ChatPanel,
 } from '@/components/chat/ChatPanel';
-import { ConversationSidebar } from '@/components/chat/ConversationSidebar';
 import { HomeDiaboStage } from '@/components/diabo/HomeDiaboStage';
 import { auth } from '@/lib/auth';
 
@@ -26,12 +25,6 @@ export default async function HomePage() {
         </header>
 
         <div className="flex flex-1 flex-col items-center overflow-hidden lg:flex-row lg:items-stretch">
-          {signedIn ? (
-            <div className="hidden lg:block">
-              <ConversationSidebar />
-            </div>
-          ) : null}
-
           <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col overflow-hidden px-4 pb-4">
             <div className="flex shrink-0 justify-center pb-0 pt-2">
               <div className="size-[300px] sm:size-[340px] lg:size-[380px]">
