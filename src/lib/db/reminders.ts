@@ -18,6 +18,7 @@ export type Reminder = {
   type: ReminderType;
   enabled: boolean;
   pushSubscription?: string;
+  lastSentAt?: Date;
   createdAt: Date;
 };
 
@@ -54,6 +55,10 @@ export async function ensureReminderIndexes(): Promise<void> {
   ]);
   reminderIndexesPromise = Promise.all([
     reminders?.createIndex({ userId: 1 }, { name: 'userId' }),
+    reminders?.createIndex(
+      { enabled: 1, userId: 1 },
+      { name: 'enabled_userId' },
+    ),
     subscriptions?.createIndex(
       { userId: 1 },
       { name: 'userId_unique', unique: true },
@@ -66,6 +71,12 @@ export async function getReminders(userId: string): Promise<Reminder[]> {
   const col = await remindersCol();
   if (!col) return [];
   return col.find({ userId }).sort({ createdAt: -1 }).toArray();
+}
+
+export async function getEnabledReminders(): Promise<Reminder[]> {
+  const col = await remindersCol();
+  if (!col) return [];
+  return col.find({ enabled: true }).toArray();
 }
 
 export async function upsertReminder(
@@ -159,4 +170,21 @@ export async function getPushSubscription(
   } catch {
     return null;
   }
+}
+
+export async function claimReminderDelivery(
+  reminderId: ObjectId,
+  scheduledAt: Date,
+): Promise<boolean> {
+  const col = await remindersCol();
+  if (!col) return false;
+  const result = await col.updateOne(
+    {
+      _id: reminderId,
+      enabled: true,
+      $or: [{ lastSentAt: { $exists: false } }, { lastSentAt: { $lt: scheduledAt } }],
+    },
+    { $set: { lastSentAt: scheduledAt } },
+  );
+  return result.modifiedCount === 1;
 }

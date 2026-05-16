@@ -11,7 +11,7 @@ export const initVapid = configureVapid;
 
 export async function sendPushNotification(
   subscription: PushSubscription,
-  payload: { title: string; body: string },
+  payload: { title: string; body: string; url?: string },
 ): Promise<void> {
   try {
     await sendNotification(subscription, payload);

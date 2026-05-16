@@ -32,6 +32,8 @@ const ServerEnvSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_MAILTO: z.string().min(1).optional(),
+  CRON_SECRET: z.string().min(1).optional(),
+  REMINDER_TIMEZONE: z.string().min(1).default('Africa/Tunis'),
 
   // App
   APP_URL: z.string().url().default('http://localhost:3000'),
