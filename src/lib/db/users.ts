@@ -23,6 +23,13 @@ type CreateUserInput = {
   name: string;
 };
 
+type UpsertOAuthUserInput = {
+  email: string;
+  name?: string | null;
+  image?: string | null;
+  emailVerified?: Date | null;
+};
+
 let usersIndexesPromise: Promise<void> | null = null;
 
 async function usersCol(): Promise<Collection<UserDoc> | null> {
@@ -76,6 +83,50 @@ export async function createUser({
     name: name.trim() || null,
     image: null,
     emailVerified: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await col.insertOne(doc);
+  return serializeUser(doc);
+}
+
+export async function upsertOAuthUser({
+  email,
+  name,
+  image,
+  emailVerified,
+}: UpsertOAuthUserInput): Promise<User | null> {
+  await ensureUsersIndexes();
+  const col = await usersCol();
+  if (!col) return null;
+
+  const normalizedEmail = normalizeEmail(email);
+  const now = new Date();
+  const existing = await col.findOne({ email: normalizedEmail });
+
+  if (existing) {
+    await col.updateOne(
+      { _id: existing._id },
+      {
+        $set: {
+          name: name?.trim() || existing.name,
+          image: image ?? existing.image,
+          emailVerified: emailVerified ?? existing.emailVerified,
+          updatedAt: now,
+        },
+      },
+    );
+    const updated = await col.findOne({ _id: existing._id });
+    return updated ? serializeUser(updated) : serializeUser(existing);
+  }
+
+  const doc: UserDoc = {
+    _id: new ObjectId(),
+    email: normalizedEmail,
+    hashedPassword: null,
+    name: name?.trim() || null,
+    image: image ?? null,
+    emailVerified: emailVerified ?? null,
     createdAt: now,
     updatedAt: now,
   };

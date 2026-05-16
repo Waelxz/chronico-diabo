@@ -105,6 +105,16 @@ export async function transferAnonLogsToUser(
   await col.updateMany({ sessionId }, { $set: { userId } });
 }
 
+export async function migrateGlucoseLogsUserId(
+  fromUserId: string,
+  toUserId: string,
+): Promise<void> {
+  if (fromUserId === toUserId) return;
+  const col = await glucoseCol();
+  if (!col) return;
+  await col.updateMany({ userId: fromUserId }, { $set: { userId: toUserId } });
+}
+
 function ownerFilter(key: OwnerKey): OwnerKey {
   return key.userId !== undefined
     ? { userId: key.userId }

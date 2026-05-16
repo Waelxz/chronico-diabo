@@ -1,8 +1,10 @@
 import NextAuth from 'next-auth';
 import bcrypt from 'bcryptjs';
+import { ObjectId } from 'mongodb';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
-import { getUserByEmail } from '@/lib/db/users';
+import { migrateGlucoseLogsUserId } from '@/lib/db/glucose';
+import { getUserByEmail, upsertOAuthUser } from '@/lib/db/users';
 import { getEnv } from '@/lib/env';
 
 const env = getEnv();
@@ -52,7 +54,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: '/login',
   },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user, account, profile }) {
+      if (account?.provider === 'google') {
+        const oauthEmail = coerceString(user.email);
+        if (!oauthEmail) return token;
+
+        const appUser = await upsertOAuthUser({
+          email: oauthEmail,
+          name: coerceString(user.name),
+          image: coerceString(user.image),
+          emailVerified: hasVerifiedEmail(profile) ? new Date() : null,
+        });
+        const previousSub = coerceString(token.sub) ?? coerceString(user.id);
+        if (appUser) {
+          token.sub = appUser._id;
+          token.email = appUser.email;
+          token.name = appUser.name;
+          token.picture = appUser.image;
+          if (previousSub) {
+            await migrateGlucoseLogsUserId(previousSub, appUser._id);
+          }
+        }
+        return token;
+      }
+
+      const tokenEmail = coerceString(token.email);
+      if (tokenEmail && (!token.sub || !ObjectId.isValid(token.sub))) {
+        const appUser = await upsertOAuthUser({
+          email: tokenEmail,
+          name: coerceString(token.name),
+          image: coerceString(token.picture),
+          emailVerified: null,
+        });
+        const previousSub = coerceString(token.sub);
+        if (appUser) {
+          token.sub = appUser._id;
+          token.name = appUser.name;
+          token.picture = appUser.image;
+          if (previousSub) {
+            await migrateGlucoseLogsUserId(previousSub, appUser._id);
+          }
+        }
+        return token;
+      }
+
       if (user?.id) {
         token.sub = user.id;
       }
@@ -66,3 +111,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+function coerceString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function hasVerifiedEmail(profile: unknown): boolean {
+  return (
+    typeof profile === 'object' &&
+    profile !== null &&
+    'email_verified' in profile &&
+    profile.email_verified === true
+  );
+}
