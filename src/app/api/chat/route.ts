@@ -45,6 +45,7 @@ const RESTAURANT_TOOL_INSTRUCTIONS =
 type ChatRequestBody = {
   messages: UIMessage[];
   chatId?: string | null;
+  pageContext?: string;
   userId?: string;
 };
 
@@ -184,6 +185,11 @@ export async function POST(req: Request) {
   const onboardingBlock = buildOnboardingProfileBlock(onboardingProfile);
   if (onboardingBlock) {
     augmentedSystem = `${augmentedSystem}\n\n${onboardingBlock}`;
+  }
+
+  const pageContextBlock = buildPageContextBlock(body.pageContext);
+  if (pageContextBlock) {
+    augmentedSystem = `${augmentedSystem}\n\n${pageContextBlock}`;
   }
 
   if (profile) {
@@ -386,6 +392,13 @@ function parseOnboardingProfileHeader(
 
 function sanitizePromptString(value: string): string {
   return value.slice(0, 100).replace(/[<>{}|\\]/g, '');
+}
+
+function buildPageContextBlock(pageContext: string | undefined): string {
+  if (!pageContext) return '';
+  const safeContext = sanitizePromptString(pageContext);
+  if (!safeContext) return '';
+  return `## Contexte de navigation\nL'utilisateur est actuellement sur: ${safeContext}. Si sa demande est ambigue, tiens compte de cette page.`;
 }
 
 function sanitizeOnboardingProfile(profile: OnboardingProfile): OnboardingProfile {

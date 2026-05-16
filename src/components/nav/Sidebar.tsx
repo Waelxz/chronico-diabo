@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   Search,
+  Settings,
   User,
   UtensilsCrossed,
   X,
@@ -29,7 +30,14 @@ type SidebarProps = {
 
 type NavItem = {
   label: string;
-  href: '/' | '/restaurants' | '/hotels' | '/glucose' | '/onboarding' | '/reminders';
+  href:
+    | '/'
+    | '/restaurants'
+    | '/hotels'
+    | '/glucose'
+    | '/onboarding'
+    | '/reminders'
+    | '/settings';
   icon: ComponentType<LucideProps>;
 };
 
@@ -40,6 +48,7 @@ const navItems: NavItem[] = [
   { label: 'Glycémie', href: '/glucose', icon: Activity },
   { label: 'Profil', href: '/onboarding', icon: User },
   { label: 'Rappels', href: '/reminders', icon: Bell },
+  { label: 'Paramètres', href: '/settings', icon: Settings },
 ];
 
 const SIDEBAR_WIDTH = {

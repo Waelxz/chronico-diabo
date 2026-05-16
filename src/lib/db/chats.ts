@@ -103,6 +103,23 @@ export async function listChatsForUser(
   return col.find({ userId }).sort({ updatedAt: -1 }).limit(limit).toArray();
 }
 
+export async function transferAnonChatToUser(
+  anonId: string,
+  userId: string,
+): Promise<string | null> {
+  const col = await chatsCol();
+  if (!col) return null;
+  const chat = await col.findOneAndUpdate(
+    { anonId },
+    {
+      $set: { userId, updatedAt: new Date() },
+      $unset: { anonId: '' },
+    },
+    { sort: { updatedAt: -1 }, returnDocument: 'after' },
+  );
+  return chat?._id ?? null;
+}
+
 export async function userOwnsChat(
   userId: string,
   chatId: string,
@@ -119,4 +136,17 @@ export async function listMessages(chatId: string, limit = 100): Promise<Message
   return col
     .find({ chatId } as Document, { sort: { createdAt: 1 }, limit })
     .toArray();
+}
+
+export async function deleteChatsForUser(userId: string): Promise<number> {
+  const [chats, msgs] = await Promise.all([chatsCol(), messagesCol()]);
+  if (!chats || !msgs) return 0;
+
+  const userChats = await chats.find({ userId }, { projection: { _id: 1 } }).toArray();
+  const chatIds = userChats.map((chat) => chat._id);
+  if (chatIds.length === 0) return 0;
+
+  await msgs.deleteMany({ chatId: { $in: chatIds } } as Document);
+  const result = await chats.deleteMany({ _id: { $in: chatIds } });
+  return result.deletedCount;
 }

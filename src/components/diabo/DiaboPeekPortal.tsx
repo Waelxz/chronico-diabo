@@ -8,12 +8,18 @@ const DiaboPeek = dynamic(
   { ssr: false },
 );
 
-export function DiaboPeekPortal() {
+export function DiaboPeekPortal({
+  signedIn,
+  userId,
+}: {
+  signedIn: boolean;
+  userId?: string;
+}) {
   const pathname = usePathname();
 
   if (pathname === '/' || pathname === '/fr' || pathname === '/ar') {
     return null;
   }
 
-  return <DiaboPeek />;
+  return <DiaboPeek signedIn={signedIn} userId={userId} />;
 }

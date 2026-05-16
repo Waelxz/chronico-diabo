@@ -14,13 +14,15 @@ import {
 } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { ArrowUp, Square } from 'lucide-react';
+import { ArrowUp, RotateCcw, Square } from 'lucide-react';
 import { useDiabo } from '@/components/diabo/DiaboProvider';
+import { usePathname } from '@/i18n/navigation';
 import type { DiaboMessageMetadata } from '@/lib/diabo/citations';
 
 type ChatPanelProps = {
   children?: ReactNode;
   className?: string;
+  pageContext?: string;
   signedIn?: boolean;
   userId?: string;
 };
@@ -36,12 +38,17 @@ type ChatContextValue = {
   isBusy: boolean;
   messages: ChatMessage[];
   regenerate: () => void;
+  resetChat: () => void;
   setInput: (value: string) => void;
   status: ChatStatus;
   stop: () => void;
 };
 
 const ChatContext = createContext<ChatContextValue | null>(null);
+const CHAT_ID_KEY = 'diabo_chat_id';
+const CHAT_TIMESTAMP_KEY = 'diabo_chat_timestamp';
+const ANON_ID_KEY = 'diabo_anon_id';
+const ANON_CHAT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Chat state shell for Diabo.
@@ -53,30 +60,41 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 export function ChatPanel({
   children,
   className,
+  pageContext,
   signedIn = false,
   userId,
 }: ChatPanelProps) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const translatedHydrationSkipRef = useRef<string | null>(null);
+  const transferAttemptedRef = useRef(false);
+  const pathname = usePathname();
+  const resolvedPageContext = pageContext ?? getPageContext(pathname);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: '/api/chat',
-        body: signedIn ? { chatId: activeChatId, userId } : undefined,
+        body: {
+          chatId: signedIn ? activeChatId : undefined,
+          pageContext: resolvedPageContext,
+          userId: signedIn ? userId : undefined,
+        },
         headers: () => ({
           'x-diabo-profile':
             typeof window !== 'undefined'
               ? (localStorage.getItem('diabo_profile') ?? '')
               : '',
           'x-anon-id':
-            typeof window !== 'undefined'
-              ? (localStorage.getItem('diabo_anon_id') ?? '')
+            !signedIn && typeof window !== 'undefined'
+              ? getOrCreateAnonId()
               : '',
         }),
         fetch: async (input, init) => {
           const response = await fetch(input, init);
           const nextChatId = response.headers.get('x-diabo-chat-id');
-          if (signedIn && nextChatId) {
+          if (!signedIn && nextChatId) {
+            saveAnonymousChat(nextChatId);
+          }
+          if (nextChatId) {
             setActiveChatId(nextChatId);
             window.dispatchEvent(
               new CustomEvent('diabo:active-chat-changed', {
@@ -87,7 +105,7 @@ export function ChatPanel({
           return response;
         },
       }),
-    [activeChatId, signedIn, userId],
+    [activeChatId, resolvedPageContext, signedIn, userId],
   );
 
   const { messages, sendMessage, setMessages, status, error, stop, regenerate } =
@@ -97,6 +115,51 @@ export function ChatPanel({
   const [hydrating, setHydrating] = useState(true);
   const { setIsThinking, setIsTalking, applyEmotion } = useDiabo();
   const isBusy = status === 'submitted' || status === 'streaming';
+
+  useEffect(() => {
+    if (signedIn || typeof window === 'undefined') return;
+    ensureAnonymousSession();
+  }, [signedIn]);
+
+  useEffect(() => {
+    if (!signedIn || !userId || transferAttemptedRef.current) return;
+    transferAttemptedRef.current = true;
+    const activeAnon = getActiveAnonymousChat();
+    if (!activeAnon) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/chats/transfer-anon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ anonId: activeAnon.anonId }),
+        });
+        const data = (await response.json()) as {
+          chatId?: string | null;
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data.error ?? 'Transfert impossible');
+        }
+        if (!cancelled && data.chatId) {
+          clearAnonymousChatStorage();
+          setActiveChatId(data.chatId);
+          window.dispatchEvent(
+            new CustomEvent('diabo:active-chat-changed', {
+              detail: { chatId: data.chatId },
+            }),
+          );
+        }
+      } catch (err) {
+        console.warn('[ChatPanel] anonymous transfer failed:', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn, userId]);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -128,6 +191,19 @@ export function ChatPanel({
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!signedIn && hasExpiredAnonymousChat()) {
+        clearAnonymousChatStorage();
+        setMessages([]);
+        setActiveChatId(null);
+        try {
+          await fetch('/api/chats/reset', { method: 'POST' });
+        } catch (err) {
+          console.warn('[ChatPanel] expired reset failed:', err);
+        }
+        if (!cancelled) setHydrating(false);
+        return;
+      }
+
       if (signedIn && !activeChatId) {
         setMessages([]);
         setHydrating(false);
@@ -150,6 +226,12 @@ export function ChatPanel({
             : '/api/chats/current/messages';
         const res = await fetch(endpoint, {
           credentials: 'same-origin',
+          headers: signedIn
+            ? undefined
+            : {
+                'x-anon-id': getOrCreateAnonId(),
+                'x-diabo-chat-id': localStorage.getItem(CHAT_ID_KEY) ?? '',
+              },
         });
         if (!res.ok) return;
         const data = (await res.json()) as {
@@ -162,8 +244,14 @@ export function ChatPanel({
           }>;
         };
         if (cancelled) return;
+        if (!signedIn && data.chatId) {
+          saveAnonymousChat(data.chatId);
+          setActiveChatId(data.chatId);
+        }
         if (data.messages.length > 0) {
           setMessages(data.messages as Parameters<typeof setMessages>[0]);
+        } else {
+          setMessages([]);
         }
       } catch (err) {
         console.warn('[ChatPanel] hydrate failed:', err);
@@ -214,6 +302,25 @@ export function ChatPanel({
       .catch((err) => console.warn('[ChatPanel] emotion failed:', err));
   }, [applyEmotion, hydrating, input, isBusy, sendMessage]);
 
+  const resetChat = useCallback(() => {
+    stop();
+    setInput('');
+    setMessages([]);
+    setActiveChatId(null);
+    translatedHydrationSkipRef.current = null;
+    if (!signedIn) {
+      clearAnonymousChatStorage();
+      void fetch('/api/chats/reset', { method: 'POST' }).catch((err) =>
+        console.warn('[ChatPanel] reset failed:', err),
+      );
+    }
+    window.dispatchEvent(
+      new CustomEvent('diabo:active-chat-changed', {
+        detail: { chatId: null },
+      }),
+    );
+  }, [setMessages, signedIn, stop]);
+
   const value = useMemo<ChatContextValue>(
     () => ({
       error,
@@ -223,6 +330,7 @@ export function ChatPanel({
       isBusy,
       messages,
       regenerate,
+      resetChat,
       setInput,
       status,
       stop,
@@ -235,6 +343,7 @@ export function ChatPanel({
       isBusy,
       messages,
       regenerate,
+      resetChat,
       status,
       stop,
     ],
@@ -338,8 +447,16 @@ export function ChatMessages({ className }: { className?: string }) {
 }
 
 export function ChatInputBar({ className }: { className?: string }) {
-  const { handleSubmit, hydrating, input, isBusy, setInput, status, stop } =
-    useChatContext();
+  const {
+    handleSubmit,
+    hydrating,
+    input,
+    isBusy,
+    resetChat,
+    setInput,
+    status,
+    stop,
+  } = useChatContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const resizeTextarea = useCallback((element: HTMLTextAreaElement) => {
@@ -358,6 +475,16 @@ export function ChatInputBar({ className }: { className?: string }) {
       onSubmit={handleSubmit}
       className={`flex w-full items-center gap-2 border-t border-zinc-200/80 bg-white/90 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950/90 ${className ?? ''}`}
     >
+      <button
+        type="button"
+        onClick={resetChat}
+        disabled={isBusy}
+        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-zinc-200 text-zinc-500 transition-all duration-150 hover:border-red-300 hover:text-red-600 disabled:opacity-40 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-red-900 dark:hover:text-red-300"
+        aria-label="Réinitialiser la conversation"
+        title="Réinitialiser la conversation"
+      >
+        <RotateCcw className="size-4" aria-hidden />
+      </button>
       <textarea
         ref={textareaRef}
         aria-label="Ecrire un message a Diabo"
@@ -404,7 +531,7 @@ export function ChatInputBar({ className }: { className?: string }) {
 }
 
 function ChatHeader() {
-  const { messages, isBusy, regenerate } = useChatContext();
+  const { messages, isBusy, regenerate, resetChat } = useChatContext();
 
   return (
     <header className="flex items-center justify-between border-b border-emerald-100/80 px-5 py-3 dark:border-emerald-900/40">
@@ -414,16 +541,28 @@ function ChatHeader() {
           Discuter avec Diabo
         </h2>
       </div>
-      {messages.length > 0 ? (
+      <div className="flex items-center gap-2">
+        {messages.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => regenerate()}
+            disabled={isBusy}
+            className="text-xs font-medium text-emerald-700 transition-all duration-150 hover:text-emerald-900 disabled:opacity-40 dark:text-emerald-300 dark:hover:text-emerald-200"
+          >
+            Régénérer
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={() => regenerate()}
+          onClick={resetChat}
           disabled={isBusy}
-          className="text-xs font-medium text-emerald-700 transition-all duration-150 hover:text-emerald-900 disabled:opacity-40 dark:text-emerald-300 dark:hover:text-emerald-200"
+          className="inline-flex size-8 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 transition-all duration-150 hover:border-red-300 hover:text-red-600 disabled:opacity-40 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-red-900 dark:hover:text-red-300"
+          aria-label="Réinitialiser la conversation"
+          title="Réinitialiser la conversation"
         >
-          Régénérer
+          <RotateCcw className="size-4" aria-hidden />
         </button>
-      ) : null}
+      </div>
     </header>
   );
 }
@@ -660,6 +799,71 @@ function containsSafetyKeyword(text: string): boolean {
   ].some((keyword) => normalized.includes(keyword));
 }
 
+function getOrCreateAnonId(): string {
+  const existing = window.localStorage.getItem(ANON_ID_KEY);
+  if (existing) return existing;
+  const next =
+    typeof window.crypto?.randomUUID === 'function'
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  window.localStorage.setItem(ANON_ID_KEY, next);
+  return next;
+}
+
+function saveAnonymousChat(chatId: string): void {
+  window.localStorage.setItem(CHAT_ID_KEY, chatId);
+  window.localStorage.setItem(CHAT_TIMESTAMP_KEY, String(Date.now()));
+}
+
+function clearAnonymousChatStorage(): void {
+  window.localStorage.removeItem(CHAT_ID_KEY);
+  window.localStorage.removeItem(CHAT_TIMESTAMP_KEY);
+  window.localStorage.removeItem(ANON_ID_KEY);
+}
+
+function hasExpiredAnonymousChat(): boolean {
+  if (typeof window === 'undefined') return false;
+  const chatId = window.localStorage.getItem(CHAT_ID_KEY);
+  const timestamp = window.localStorage.getItem(CHAT_TIMESTAMP_KEY);
+  if (!chatId && !timestamp) return false;
+  if (!chatId) return true;
+  if (!timestamp) {
+    window.localStorage.setItem(CHAT_TIMESTAMP_KEY, String(Date.now()));
+    return false;
+  }
+  const savedAt = Number(timestamp);
+  return !Number.isFinite(savedAt) || Date.now() - savedAt > ANON_CHAT_MAX_AGE_MS;
+}
+
+function ensureAnonymousSession(): void {
+  if (hasExpiredAnonymousChat()) {
+    clearAnonymousChatStorage();
+    void fetch('/api/chats/reset', { method: 'POST' }).catch((err) =>
+      console.warn('[ChatPanel] expired cleanup failed:', err),
+    );
+    return;
+  }
+  getOrCreateAnonId();
+}
+
+function getActiveAnonymousChat(): { anonId: string; chatId: string } | null {
+  if (typeof window === 'undefined' || hasExpiredAnonymousChat()) {
+    return null;
+  }
+  const anonId = window.localStorage.getItem(ANON_ID_KEY);
+  const chatId = window.localStorage.getItem(CHAT_ID_KEY);
+  return anonId && chatId ? { anonId, chatId } : null;
+}
+
+function getPageContext(pathname: string): string {
+  if (pathname.includes('/restaurants')) return 'Page restaurants';
+  if (pathname.includes('/hotels')) return 'Page hôtels';
+  if (pathname.includes('/glucose')) return 'Page suivi glycémie';
+  if (pathname.includes('/reminders')) return 'Page rappels';
+  if (pathname.includes('/onboarding')) return 'Page profil';
+  if (pathname.includes('/settings')) return 'Page paramètres';
+  return 'Page accueil';
+}
 
 function useChatContext() {
   const ctx = useContext(ChatContext);

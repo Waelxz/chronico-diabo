@@ -26,9 +26,12 @@ type UIMessageLike = {
   metadata?: Record<string, unknown>;
 };
 
-export async function GET() {
+export async function GET(req: Request) {
   const cookieStore = await cookies();
-  const chatId = cookieStore.get(COOKIE_NAME)?.value;
+  const chatId =
+    cookieStore.get(COOKIE_NAME)?.value ??
+    req.headers.get('x-diabo-chat-id') ??
+    null;
   if (!chatId) {
     return Response.json({ chatId: null, messages: [] });
   }

@@ -6,6 +6,7 @@ import { getMessages } from 'next-intl/server';
 import { DiaboProvider } from '@/components/diabo/DiaboProvider';
 import { DiaboPeekPortal } from '@/components/diabo/DiaboPeekPortal';
 import { Sidebar } from '@/components/nav/Sidebar';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { routing } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import '../globals.css';
@@ -62,19 +63,25 @@ export default async function LocaleLayout({
       lang={locale}
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="flex h-full bg-zinc-950 font-sans">
         <NextIntlClientProvider messages={messages}>
-          <DiaboProvider>
-            <Sidebar session={session} />
-            <DiaboPeekPortal />
-            <main
-              data-sidebar-main
-              className="flex min-h-full flex-1 flex-col transition-[margin] duration-300 ease-in-out lg:ml-[4.5rem]"
-            >
-              <div className="transition-opacity duration-200">{children}</div>
-            </main>
-          </DiaboProvider>
+          <ThemeProvider>
+            <DiaboProvider>
+              <Sidebar session={session} />
+              <DiaboPeekPortal
+                signedIn={Boolean(session?.user?.id)}
+                userId={session?.user?.id}
+              />
+              <main
+                data-sidebar-main
+                className="flex min-h-full flex-1 flex-col transition-[margin] duration-300 ease-in-out lg:ml-[4.5rem]"
+              >
+                <div className="transition-opacity duration-200">{children}</div>
+              </main>
+            </DiaboProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

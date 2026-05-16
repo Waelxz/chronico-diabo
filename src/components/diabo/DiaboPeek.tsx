@@ -1,11 +1,24 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { MessageCircle, X } from 'lucide-react';
+import {
+  ChatInputBar,
+  ChatMessages,
+  ChatPanel,
+} from '@/components/chat/ChatPanel';
 import { DiaboStage } from '@/components/diabo/DiaboStage';
 import { useDiaboLook } from '@/hooks/useDiaboLook';
 
-export function DiaboPeek() {
+export function DiaboPeek({
+  signedIn,
+  userId,
+}: {
+  signedIn: boolean;
+  userId?: string;
+}) {
   const [visible, setVisible] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setVisible(true), 600);
@@ -13,32 +26,89 @@ export function DiaboPeek() {
   }, []);
 
   return (
-    <DiaboPeekInner visible={visible} />
+    <>
+      <DiaboPeekButton
+        visible={visible}
+        onOpenChat={() => setChatOpen(true)}
+      />
+      {chatOpen ? (
+        <FloatingChatPanel
+          signedIn={signedIn}
+          userId={userId}
+          onClose={() => setChatOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }
 
-function DiaboPeekInner({ visible }: { visible: boolean }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+function DiaboPeekButton({
+  onOpenChat,
+  visible,
+}: {
+  onOpenChat: () => void;
+  visible: boolean;
+}) {
+  const containerRef = useRef<HTMLButtonElement>(null);
   useDiaboLook(containerRef);
 
   return (
-    /*
-     * Outer: clipping window — only top half of avatar is visible.
-     * Height = half the avatar render size (96px visible, 192px canvas).
-     * Positioned flush with the bottom edge.
-     * Entrance: slides up 96px (its own height) from below the viewport.
-     */
-    <div
+    <button
+      type="button"
       ref={containerRef}
-      className={`fixed bottom-0 right-4 z-50 h-44 w-52 overflow-hidden transition-transform duration-500 ease-out ${
+      onClick={onOpenChat}
+      className={`fixed bottom-0 right-4 z-50 h-44 w-52 overflow-hidden transition-transform duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
-      aria-hidden="true"
+      aria-label="Ouvrir le chat Diabo"
     >
-      {/* Frosted strip behind the avatar so it reads on any background */}
-      <div className="absolute inset-x-0 bottom-0 h-4 rounded-t-full bg-white/60 backdrop-blur-sm dark:bg-zinc-950/60" />
-      {/* Canvas is 2.5× the clip height — top of avatar (head) sits in clip window */}
+      <span className="absolute inset-x-0 bottom-0 h-4 rounded-t-full bg-white/60 backdrop-blur-sm dark:bg-zinc-950/60" />
       <DiaboStage className="absolute inset-x-0 top-0 h-[420px] w-full" />
+      <span className="absolute bottom-5 right-3 inline-flex size-11 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-700">
+        <MessageCircle className="size-5" aria-hidden />
+      </span>
+    </button>
+  );
+}
+
+function FloatingChatPanel({
+  onClose,
+  signedIn,
+  userId,
+}: {
+  onClose: () => void;
+  signedIn: boolean;
+  userId?: string;
+}) {
+  return (
+    <div className="fixed bottom-4 right-4 z-[70] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl shadow-zinc-950/20 dark:border-zinc-800 dark:bg-zinc-950">
+      <ChatPanel signedIn={signedIn} userId={userId}>
+        <section
+          className="flex h-[min(42rem,calc(100dvh-2rem))] flex-col"
+          aria-label="Chat flottant avec Diabo"
+        >
+          <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            <div>
+              <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                Diabo
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Assistant santé
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex size-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
+              aria-label="Fermer le chat"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          </header>
+          <ChatMessages className="min-h-0" />
+          <ChatInputBar className="shrink-0" />
+        </section>
+      </ChatPanel>
     </div>
   );
 }

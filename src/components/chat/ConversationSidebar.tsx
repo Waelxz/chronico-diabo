@@ -143,14 +143,6 @@ export function ConversationSidebar() {
         ) : null}
 
         <div className="space-y-2">
-          <button
-            type="button"
-            onClick={() => selectChat(null)}
-            className="w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-700"
-          >
-            Nouvelle conversation
-          </button>
-
           {loading ? (
             <p className="px-2 py-3 text-sm text-zinc-500">
               Chargement des conversations...

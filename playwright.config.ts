@@ -1,14 +1,15 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  outputDir: '.windsurf/playwright-screenshots',
+  outputDir: 'test-results',
+  snapshotDir: 'test-snapshots',
   use: {
     browserName: 'chromium',
     channel: 'msedge',
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
     viewport: {
-      width: 1280,
-      height: 800,
+      width: 1920,
+      height: 1080,
     },
   },
 });

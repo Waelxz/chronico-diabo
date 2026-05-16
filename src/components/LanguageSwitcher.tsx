@@ -22,7 +22,10 @@ export function LanguageSwitcher({
   return (
     <button
       type="button"
-      onClick={() => router.replace(pathname, { locale: nextLocale })}
+      onClick={() => {
+        window.localStorage.setItem('diabo_locale', nextLocale);
+        router.replace(pathname, { locale: nextLocale });
+      }}
       aria-label={`Changer la langue vers ${label}`}
       title={compact ? label : undefined}
       className={`inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-150 hover:border-emerald-400 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300 ${className ?? ''}`}

@@ -74,6 +74,8 @@ export function OnboardingForm() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CompanionProfilePayload | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   const steps = useMemo(
     () => ['Qui es-tu ?', 'Ton traitement', 'Tes préférences'],
@@ -92,6 +94,7 @@ export function OnboardingForm() {
         throw new Error(data.error ?? 'Chargement impossible');
       }
       if (data.profile) {
+        setProfile(data.profile);
         setName(data.profile.name ?? '');
         setBirthDate(data.profile.birthDate ?? '');
         setGender(data.profile.gender ?? '');
@@ -104,6 +107,8 @@ export function OnboardingForm() {
         setTreatment(data.profile.treatment ?? '');
         setGoals(data.profile.goals ?? []);
         setRestrictions(data.profile.restrictions ?? []);
+      } else {
+        setProfile(null);
       }
     } catch (err) {
       setError(
@@ -154,6 +159,7 @@ export function OnboardingForm() {
       if (!response.ok || !data.profile) {
         throw new Error(data.error ?? 'Enregistrement impossible');
       }
+      setProfile(data.profile);
       window.localStorage.setItem(
         'diabo_profile',
         JSON.stringify({
@@ -169,6 +175,9 @@ export function OnboardingForm() {
         }),
       );
       setSaved(true);
+      if (isCompleteProfile(data.profile)) {
+        setEditMode(false);
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -198,6 +207,19 @@ export function OnboardingForm() {
       <section className="rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
         Chargement de votre profil...
       </section>
+    );
+  }
+
+  if (profile && isCompleteProfile(profile) && !editMode) {
+    return (
+      <ProfileReadOnly
+        profile={profile}
+        saved={saved}
+        onEdit={() => {
+          setSaved(false);
+          setEditMode(true);
+        }}
+      />
     );
   }
 
@@ -464,6 +486,124 @@ export function OnboardingForm() {
   );
 }
 
+function ProfileReadOnly({
+  onEdit,
+  profile,
+  saved,
+}: {
+  onEdit: () => void;
+  profile: CompanionProfilePayload;
+  saved: boolean;
+}) {
+  const infoItems = [
+    { label: 'Prénom', value: profile.name },
+    { label: 'Date de naissance', value: formatDate(profile.birthDate) },
+    { label: 'Genre', value: genderLabel(profile.gender) },
+    { label: 'Taille', value: profile.heightCm ? `${profile.heightCm} cm` : null },
+    { label: 'Poids', value: profile.weightKg ? `${profile.weightKg} kg` : null },
+    { label: 'Type de diabète', value: diabetesTypeLabel(profile.diabetesType) },
+    { label: 'Ville', value: profile.city },
+  ];
+  const careItems = [
+    { label: 'Traitement', value: profile.treatment },
+    { label: 'Objectifs', value: profile.goals?.join(', ') },
+    { label: 'Restrictions', value: profile.restrictions?.join(', ') },
+    { label: "Contact d'urgence", value: profile.emergencyContactName },
+    { label: "Téléphone d'urgence", value: profile.emergencyContactPhone },
+  ];
+
+  return (
+    <section className="w-full max-w-4xl space-y-5 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase text-emerald-700 dark:text-emerald-400">
+            Profil Diabo
+          </p>
+          <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+            {profile.name}
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Ton profil est complet. Diabo utilise ces informations pour adapter
+            ses réponses.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+        >
+          Modifier
+        </button>
+      </div>
+
+      {saved ? (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+          Profil enregistré.
+        </p>
+      ) : null}
+
+      <ProfileSection title="Informations personnelles" items={infoItems} />
+      <ProfileSection title="Santé et préférences" items={careItems} />
+
+      <section className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+            Paramètres du compte
+          </h2>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Gère la sécurité et les données de ton compte.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/settings"
+            className="inline-flex justify-center rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-200"
+          >
+            Changer le mot de passe
+          </Link>
+          <Link
+            href="/settings"
+            className="inline-flex justify-center rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 transition hover:border-red-400 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+          >
+            Supprimer le compte
+          </Link>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function ProfileSection({
+  items,
+  title,
+}: {
+  items: Array<{ label: string; value?: string | null }>;
+  title: string;
+}) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+        {title}
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            <p className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
+              {item.label}
+            </p>
+            <p className="mt-1 text-sm font-medium text-zinc-950 dark:text-zinc-50">
+              {item.value || 'Non précisé'}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function StepHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="space-y-1">
@@ -537,6 +677,32 @@ function CheckboxGroup({
       </div>
     </fieldset>
   );
+}
+
+function isCompleteProfile(profile: CompanionProfilePayload): boolean {
+  return Boolean(
+    profile.name?.trim() &&
+      profile.birthDate &&
+      profile.gender &&
+      profile.heightCm &&
+      profile.weightKg &&
+      profile.diabetesType,
+  );
+}
+
+function formatDate(value: string | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(date);
+}
+
+function genderLabel(value: Gender | undefined): string | null {
+  return GENDERS.find((option) => option.value === value)?.label ?? null;
+}
+
+function diabetesTypeLabel(value: DiabetesType | undefined): string | null {
+  return DIABETES_TYPES.find((option) => option.value === value)?.label ?? null;
 }
 
 function mapType(value: string | undefined): 't1' | 't2' | 'pre' | 'unknown' {
