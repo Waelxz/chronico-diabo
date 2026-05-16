@@ -129,10 +129,12 @@ export function HotelList() {
             onChange={(event) => setRadius(Number(event.target.value))}
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-all duration-150 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           >
-            <option value={1000}>1 km</option>
-            <option value={2000}>2 km</option>
-            <option value={3500}>3,5 km</option>
+            <option value={800}>800 m</option>
+            <option value={1500}>1,5 km</option>
+            <option value={3000}>3 km</option>
             <option value={5000}>5 km</option>
+            <option value={10000}>10 km</option>
+            <option value={20000}>20 km</option>
           </select>
         </div>
 
@@ -169,6 +171,7 @@ export function HotelList() {
 
       <VectorMap
         center={center}
+        userPosition={center}
         pins={mapPins}
         onSelect={setSelectedPlaceId}
         className="h-96 overflow-hidden rounded-xl shadow-md"

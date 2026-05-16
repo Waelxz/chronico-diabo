@@ -26,6 +26,7 @@ const ServerEnvSchema = z.object({
   AUTH_SECRET: z.string().min(1).optional(),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_PLACES_API_KEY: z.string().min(1).optional(),
 
   // Web Push (VAPID)
   VAPID_PUBLIC_KEY: z.string().min(1).optional(),

@@ -1,4 +1,5 @@
 import 'server-only';
+import { fetchGoogleRestaurantsNear } from '@/lib/places/google-places';
 import type { RestaurantPoi } from '@/lib/restaurants/types';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
@@ -37,6 +38,17 @@ export async function fetchRestaurantsNear({
   cuisine?: string;
   timeoutMs?: number;
 }): Promise<RestaurantPoi[]> {
+  const googleRestaurants = await fetchGoogleRestaurantsNear({
+    lat,
+    lon,
+    radius,
+    cuisine,
+  }).catch((err) => {
+    console.warn('[google-places] restaurants failed, falling back to Overpass:', err);
+    return null;
+  });
+  if (googleRestaurants) return googleRestaurants;
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const query = buildRestaurantQuery(lat, lon, radius);

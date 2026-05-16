@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Trash2 } from 'lucide-react';
+import { Bell, Download, Trash2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -20,6 +20,7 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
   );
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   function updateNotifications(enabled: boolean) {
@@ -88,6 +89,73 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
     }
   }
 
+  async function enablePushNotifications() {
+    if (!signedIn) {
+      setMessage('Connectez-vous pour activer les notifications.');
+      return;
+    }
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setMessage("Les notifications push ne sont pas disponibles dans ce navigateur.");
+      return;
+    }
+
+    setSubscribing(true);
+    setMessage(null);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        updateNotifications(false);
+        setMessage('Autorisation des notifications refusee.');
+        return;
+      }
+
+      const keyResponse = await fetch('/api/notifications/subscribe', {
+        cache: 'no-store',
+      });
+      const keyData = (await keyResponse.json()) as {
+        publicKey?: string | null;
+        error?: string;
+      };
+      if (!keyResponse.ok || !keyData.publicKey) {
+        throw new Error(
+          keyData.error ?? 'Configuration des notifications introuvable',
+        );
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const existingSubscription =
+        await registration.pushManager.getSubscription();
+      const subscription =
+        existingSubscription ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToArrayBuffer(keyData.publicKey),
+        }));
+
+      const response = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Abonnement impossible');
+      }
+
+      updateNotifications(true);
+      setMessage('Notifications activees.');
+    } catch (err) {
+      updateNotifications(false);
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Impossible d'activer les notifications",
+      );
+    } finally {
+      setSubscribing(false);
+    }
+  }
+
   return (
     <section className="space-y-5 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-6">
       {message ? (
@@ -133,15 +201,26 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
         title="Notifications"
         description="Active ou désactive les rappels envoyés par Diabo."
       >
-        <label className="inline-flex items-center gap-3 text-sm font-medium text-zinc-800 dark:text-zinc-100">
-          <input
-            type="checkbox"
-            checked={notificationsEnabled}
-            onChange={(event) => updateNotifications(event.target.checked)}
-            className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
-          />
-          Rappels activés
-        </label>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label className="inline-flex items-center gap-3 text-sm font-medium text-zinc-800 dark:text-zinc-100">
+            <input
+              type="checkbox"
+              checked={notificationsEnabled}
+              onChange={(event) => updateNotifications(event.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            Rappels activés
+          </label>
+          <button
+            type="button"
+            onClick={() => void enablePushNotifications()}
+            disabled={!signedIn || subscribing}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200"
+          >
+            <Bell className="size-4" aria-hidden />
+            {subscribing ? 'Activation...' : 'Activer les notifications'}
+          </button>
+        </div>
       </SettingsSection>
 
       <SettingsSection
@@ -193,6 +272,17 @@ export function SettingsForm({ signedIn }: SettingsFormProps) {
       </SettingsSection>
     </section>
   );
+}
+
+function urlBase64ToArrayBuffer(value: string): ArrayBuffer {
+  const padding = '='.repeat((4 - (value.length % 4)) % 4);
+  const base64 = `${value}${padding}`.replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let index = 0; index < rawData.length; index += 1) {
+    output[index] = rawData.charCodeAt(index);
+  }
+  return output.buffer;
 }
 
 function SettingsSection({

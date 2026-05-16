@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 const DEFAULT_RADIUS = 1_500;
-const MAX_RADIUS = 5_000;
+const MAX_RADIUS = 20_000;
 
 type HotelsApiResponse = {
   hotels: Awaited<ReturnType<typeof rankHotels>>;

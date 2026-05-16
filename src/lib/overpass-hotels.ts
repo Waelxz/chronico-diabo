@@ -1,4 +1,5 @@
 import 'server-only';
+import { fetchGoogleHotelsNear } from '@/lib/places/google-places';
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -45,6 +46,14 @@ export async function fetchHotelsNear({
   radius: number;
   timeoutMs?: number;
 }): Promise<HotelPoi[]> {
+  const googleHotels = await fetchGoogleHotelsNear({ lat, lon, radius }).catch(
+    (err) => {
+      console.warn('[google-places] hotels failed, falling back to Overpass:', err);
+      return null;
+    },
+  );
+  if (googleHotels) return googleHotels;
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const query = buildHotelQuery(lat, lon, radius);

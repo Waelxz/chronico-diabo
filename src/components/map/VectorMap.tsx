@@ -16,6 +16,7 @@ export type MapPin = {
 
 type Props = {
   center: { lat: number; lon: number };
+  userPosition?: { lat: number; lon: number };
   zoom?: number;
   pins: MapPin[];
   onSelect?: (id: string) => void;
@@ -30,6 +31,7 @@ export function VectorMap({
   pins,
   onSelect,
   className,
+  userPosition,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
@@ -93,7 +95,36 @@ export function VectorMap({
 
       const map = mapRef.current;
       markersRef.current.forEach((marker) => marker.remove());
-      activeMarkers = pins.map((pin) => {
+      activeMarkers = [];
+      if (userPosition) {
+        const userElement = document.createElement('div');
+        userElement.setAttribute('aria-label', 'Votre position');
+        userElement.style.width = '18px';
+        userElement.style.height = '18px';
+        userElement.style.borderRadius = '9999px';
+        userElement.style.background = '#2563eb';
+        userElement.style.border = '3px solid #ffffff';
+        userElement.style.boxShadow =
+          '0 0 0 0 rgba(37,99,235,0.55), 0 6px 14px rgba(30,64,175,0.35)';
+        userElement.style.animation = 'diabo-user-dot 1.8s ease-out infinite';
+
+        const styleId = 'diabo-user-dot-style';
+        if (!document.getElementById(styleId)) {
+          const style = document.createElement('style');
+          style.id = styleId;
+          style.textContent =
+            '@keyframes diabo-user-dot { 0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.55), 0 6px 14px rgba(30,64,175,0.35); } 70% { box-shadow: 0 0 0 14px rgba(37,99,235,0), 0 6px 14px rgba(30,64,175,0.35); } 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0), 0 6px 14px rgba(30,64,175,0.35); } }';
+          document.head.appendChild(style);
+        }
+
+        activeMarkers.push(
+          new maplibregl.Marker({ element: userElement })
+            .setLngLat([userPosition.lon, userPosition.lat])
+            .addTo(map),
+        );
+      }
+
+      activeMarkers.push(...pins.map((pin) => {
         const element = document.createElement('button');
         element.type = 'button';
         element.ariaLabel = pin.label;
@@ -142,7 +173,7 @@ export function VectorMap({
           .setLngLat([pin.lon, pin.lat])
           .setPopup(popup)
           .addTo(map);
-      });
+      }));
       markersRef.current = activeMarkers;
     });
 
@@ -150,7 +181,7 @@ export function VectorMap({
       cancelled = true;
       activeMarkers.forEach((marker) => marker.remove());
     };
-  }, [onSelect, pins, ready]);
+  }, [onSelect, pins, ready, userPosition]);
 
   return (
     <div

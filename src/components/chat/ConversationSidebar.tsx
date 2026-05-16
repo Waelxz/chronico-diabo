@@ -147,11 +147,7 @@ export function ConversationSidebar() {
             <p className="px-2 py-3 text-sm text-zinc-500">
               Chargement des conversations...
             </p>
-          ) : chats.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-zinc-500">
-              Aucune conversation enregistrée.
-            </p>
-          ) : (
+          ) : chats.length === 0 ? null : (
             chats.map((chat) => (
               <div
                 key={chat.id}

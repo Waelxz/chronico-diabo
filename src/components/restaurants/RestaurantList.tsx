@@ -172,6 +172,8 @@ export function RestaurantList() {
             <option value={1500}>1,5 km</option>
             <option value={3000}>3 km</option>
             <option value={5000}>5 km</option>
+            <option value={10000}>10 km</option>
+            <option value={20000}>20 km</option>
           </select>
         </div>
 
@@ -238,6 +240,7 @@ export function RestaurantList() {
 
       <VectorMap
         center={center}
+        userPosition={center}
         pins={mapPins}
         onSelect={setSelectedPlaceId}
         className="h-96 overflow-hidden rounded-xl shadow-md"
